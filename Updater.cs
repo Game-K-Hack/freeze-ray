@@ -13,6 +13,10 @@ namespace FreezeRay
         NoSource,
         UpToDate,
         Available,
+
+        /// <summary>Dépôt joignable mais sans version publiée, ou dépôt inexistant.</summary>
+        NoRelease,
+
         Error
     }
 
@@ -121,8 +125,17 @@ namespace FreezeRay
             }
             catch (WebException ex)
             {
+                // GitHub répond 404 aussi bien pour un dépôt inconnu que pour un
+                // dépôt sans version publiée : les deux se disent de la même façon.
+                HttpWebResponse response = ex.Response as HttpWebResponse;
+                if (response != null && response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    result.Status = UpdateStatus.NoRelease;
+                    return result;
+                }
+
                 result.Status = UpdateStatus.Error;
-                result.Error = Describe(ex);
+                result.Error = ex.Message;
                 return result;
             }
             catch (Exception ex)
@@ -131,14 +144,6 @@ namespace FreezeRay
                 result.Error = ex.Message;
                 return result;
             }
-        }
-
-        private static string Describe(WebException ex)
-        {
-            HttpWebResponse response = ex.Response as HttpWebResponse;
-            if (response != null && response.StatusCode == HttpStatusCode.NotFound)
-                return "dépôt ou version introuvable (404)";
-            return ex.Message;
         }
 
         /// <summary>Accepte « v1.2.3 », « 1.2 », « release-1.2.3 »…</summary>

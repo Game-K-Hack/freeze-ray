@@ -55,21 +55,23 @@ namespace FreezeRay
             ClientSize = new Size(430, 418);
             Icon = Assets.GetIcon(32);
 
+            // Illustration propre à cet en-tête : les autres usages du logo
+            // (zone de notification, curseur, marque) restent inchangés.
             _logo = new PictureBox();
-            _logo.Image = Assets.RenderLogo(48);
+            _logo.Image = Assets.RenderBanner(64);
             _logo.SizeMode = PictureBoxSizeMode.AutoSize;
-            _logo.Location = new Point(16, 16);
+            _logo.Location = new Point(14, 12);
 
             _title = new Label();
             _title.Text = Strings.AppName;
             _title.Font = new Font(Font.FontFamily, 14f, FontStyle.Bold);
             _title.AutoSize = true;
-            _title.Location = new Point(76, 18);
+            _title.Location = new Point(88, 24);
 
             _version = new Label();
             _version.AutoSize = true;
             _version.ForeColor = SystemColors.GrayText;
-            _version.Location = new Point(78, 46);
+            _version.Location = new Point(90, 52);
 
             _generalBox = new GroupBox();
             _generalBox.Location = new Point(16, 80);
@@ -275,6 +277,12 @@ namespace FreezeRay
                     {
                         OpenPage(result.PageUrl);
                     }
+                    break;
+
+                case UpdateStatus.NoRelease:
+                    MessageBox.Show(this, Strings.T("update.noRelease"),
+                        Strings.T("settings.updates"), MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
                     break;
 
                 case UpdateStatus.Error:

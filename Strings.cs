@@ -108,6 +108,7 @@ namespace FreezeRay
             { "update.available", "Version {0} disponible. Ouvrir la page de téléchargement ?" },
             { "update.availableTitle", "Mise à jour disponible" },
             { "update.noSource", "Aucun dépôt renseigné : indiquez-en un pour rechercher les mises à jour." },
+            { "update.noRelease", "Aucune version n'est encore publiée sur ce dépôt." },
             { "update.error", "Recherche impossible : {0}" },
         };
 
@@ -170,6 +171,7 @@ namespace FreezeRay
             { "update.available", "Version {0} is available. Open the download page?" },
             { "update.availableTitle", "Update available" },
             { "update.noSource", "No repository set: provide one to check for updates." },
+            { "update.noRelease", "No release has been published on this repository yet." },
             { "update.error", "Check failed: {0}" },
         };
     }

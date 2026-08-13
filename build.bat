@@ -20,6 +20,7 @@ rem /resource     : logo embarque, l'exe reste utilisable sans le dossier assets
   /win32icon:"%~dp0assets\app.ico" ^
   /resource:"%~dp0assets\app.ico",FreezeRay.app.ico ^
   /resource:"%~dp0assets\icon.png",FreezeRay.logo.png ^
+  /resource:"%~dp0assets\Freeze Ray.png",FreezeRay.banner.png ^
   /r:System.dll /r:System.Core.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll ^
   "%~dp0Program.cs" "%~dp0Native.cs" "%~dp0VirtualDesktop.cs" ^
   "%~dp0WindowPicker.cs" "%~dp0WindowMarker.cs" "%~dp0Assets.cs" ^
@@ -35,4 +36,5 @@ if errorlevel 1 (
 echo.
 echo OK : %~dp0Freeze Ray.exe
 endlocal
+
 

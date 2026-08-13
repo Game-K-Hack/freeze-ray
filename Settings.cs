@@ -18,6 +18,9 @@ namespace FreezeRay
     {
         private const string FILE_NAME = "settings.ini";
 
+        /// <summary>Dépôt officiel du projet, proposé tant que rien n'est saisi.</summary>
+        public const string DEFAULT_REPOSITORY = "Game-K-Hack/freeze-ray";
+
         public bool ReleaseAllOnExit { get; set; }
         public bool ShowNotifications { get; set; }
         public Language Language { get; set; }
@@ -30,7 +33,7 @@ namespace FreezeRay
             ReleaseAllOnExit = true;
             ShowNotifications = true;
             Language = Strings.Detect();
-            UpdateRepository = string.Empty;
+            UpdateRepository = DEFAULT_REPOSITORY;
         }
 
         public static string Folder

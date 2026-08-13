@@ -18,9 +18,18 @@ namespace FreezeRay
         private const string ICON_RESOURCE = "FreezeRay.app.ico";
         private const string LOGO_RESOURCE = "FreezeRay.logo.png";
 
+        /// <summary>
+        /// Illustration réservée à l'en-tête des paramètres. L'icône du système,
+        /// le curseur de désignation et la marque continuent d'utiliser
+        /// <see cref="LOGO_RESOURCE"/>, qui reste lisible en très petite taille.
+        /// </summary>
+        private const string BANNER_RESOURCE = "FreezeRay.banner.png";
+
         private static readonly Dictionary<int, Icon> _icons = new Dictionary<int, Icon>();
         private static Bitmap _logo;
         private static bool _logoLoaded;
+        private static Bitmap _banner;
+        private static bool _bannerLoaded;
 
         /// <summary>Logo en pleine résolution, transparent. Null si absent.</summary>
         public static Bitmap Logo
@@ -39,6 +48,28 @@ namespace FreezeRay
                 }
                 return _logo;
             }
+        }
+
+        /// <summary>
+        /// Illustration de l'en-tête des paramètres, à la taille voulue.
+        /// Retombe sur le logo ordinaire si la ressource manque.
+        /// L'appelant devient propriétaire du bitmap.
+        /// </summary>
+        public static Bitmap RenderBanner(int size)
+        {
+            if (_banner == null && !_bannerLoaded)
+            {
+                _bannerLoaded = true;
+                using (Stream s = Open(BANNER_RESOURCE))
+                {
+                    if (s != null)
+                    {
+                        try { _banner = new Bitmap(s); }
+                        catch (ArgumentException) { _banner = null; }
+                    }
+                }
+            }
+            return _banner != null ? Scale(_banner, size) : RenderLogo(size);
         }
 
         /// <summary>Icône à la taille demandée, en repli sur un dessin minimal.</summary>
@@ -78,6 +109,24 @@ namespace FreezeRay
         /// </summary>
         public static Bitmap RenderLogo(int size)
         {
+            Bitmap logo = Logo;
+            if (logo != null) return Scale(logo, size);
+
+            Bitmap dst = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            using (Graphics g = Graphics.FromImage(dst))
+            using (Icon icon = GetIcon(size))
+            {
+                g.CompositingMode = CompositingMode.SourceCopy;
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.SmoothingMode = SmoothingMode.HighQuality;
+                g.DrawImage(icon.ToBitmap(), new Rectangle(0, 0, size, size));
+            }
+            return dst;
+        }
+
+        private static Bitmap Scale(Bitmap source, int size)
+        {
             Bitmap dst = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             using (Graphics g = Graphics.FromImage(dst))
             {
@@ -85,17 +134,7 @@ namespace FreezeRay
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 g.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 g.SmoothingMode = SmoothingMode.HighQuality;
-
-                Bitmap logo = Logo;
-                if (logo != null)
-                {
-                    g.DrawImage(logo, new Rectangle(0, 0, size, size));
-                }
-                else
-                {
-                    using (Icon icon = GetIcon(size))
-                        g.DrawImage(icon.ToBitmap(), new Rectangle(0, 0, size, size));
-                }
+                g.DrawImage(source, new Rectangle(0, 0, size, size));
             }
             return dst;
         }
