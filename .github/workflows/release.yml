@@ -1,0 +1,135 @@
+# Compile et publie les binaires dès qu'une release est publiée sur GitHub.
+#
+# Windows uniquement, et c'est une contrainte du produit, pas de l'outillage :
+# la fonction centrale repose sur des interfaces COM non documentées du shell
+# Windows, sans équivalent sous Linux ou macOS. Voir le README.
+#
+# L'exécutable est compilé en AnyCPU avec le compilateur C# fourni par Windows :
+# un seul fichier couvre les Windows x86, x64 et ARM64.
+
+name: Release
+
+on:
+  release:
+    types: [published]
+  # Permet un essai à blanc sans publier de release.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version à simuler (ex. 1.2.3)"
+        required: true
+        default: "0.0.0"
+
+permissions:
+  contents: write # nécessaire pour attacher les fichiers à la release
+
+jobs:
+  windows:
+    name: Windows (x86 / x64 / ARM64)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Déterminer la version
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
+            $raw = '${{ github.event.inputs.version }}'
+          } else {
+            $raw = '${{ github.event.release.tag_name }}'
+          }
+
+          # « v1.2.3 », « 1.2.3 », « release-1.2 »… on ne garde que les nombres.
+          $match = [regex]::Match($raw, '(\d+)\.(\d+)(?:\.(\d+))?')
+          if (-not $match.Success) {
+            Write-Error "Étiquette « $raw » : impossible d'en tirer un numéro de version. Utilisez une étiquette du type v1.2.3."
+            exit 1
+          }
+
+          $major = $match.Groups[1].Value
+          $minor = $match.Groups[2].Value
+          $patch = if ($match.Groups[3].Success) { $match.Groups[3].Value } else { '0' }
+          $version = "$major.$minor.$patch"
+
+          Write-Host "Étiquette « $raw » -> version $version"
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      # Sans cette étape, un binaire publié sous l'étiquette v1.1.0 continuerait
+      # de se déclarer en 1.0.0 : la recherche de mise à jour proposerait alors
+      # indéfiniment de télécharger la version déjà installée.
+      - name: Inscrire la version dans l'assembly
+        shell: pwsh
+        run: |
+          $v = '${{ steps.version.outputs.version }}'
+          $path = 'AssemblyInfo.cs'
+          $text = [IO.File]::ReadAllText($path)
+          $text = [regex]::Replace($text, 'AssemblyVersion\("[^"]*"\)', "AssemblyVersion(""$v.0"")")
+          $text = [regex]::Replace($text, 'AssemblyFileVersion\("[^"]*"\)', "AssemblyFileVersion(""$v.0"")")
+          [IO.File]::WriteAllText($path, $text, (New-Object Text.UTF8Encoding($false)))
+          Select-String -Path $path -Pattern 'AssemblyVersion|AssemblyFileVersion'
+
+      - name: Compiler
+        shell: cmd
+        run: build.bat
+
+      # Le numéro inscrit doit correspondre à l'étiquette, sinon la recherche de
+      # mise à jour ment aux utilisateurs. On le relit dans le binaire produit.
+      - name: Vérifier le binaire
+        shell: pwsh
+        run: |
+          $exe = 'Freeze Ray.exe'
+          if (-not (Test-Path $exe)) { Write-Error 'Compilation sans binaire produit.'; exit 1 }
+
+          $expected = '${{ steps.version.outputs.version }}.0'
+          $actual = [Reflection.AssemblyName]::GetAssemblyName((Resolve-Path $exe)).Version.ToString()
+          Write-Host "version attendue : $expected"
+          Write-Host "version du binaire : $actual"
+          if ($actual -ne $expected) { Write-Error 'Version du binaire différente de l''étiquette.'; exit 1 }
+
+          Write-Host "taille : $((Get-Item $exe).Length) octets"
+
+      - name: Préparer les fichiers à publier
+        id: package
+        shell: pwsh
+        run: |
+          $v = '${{ steps.version.outputs.version }}'
+          New-Item -ItemType Directory -Force dist | Out-Null
+
+          # Archive : le binaire accompagné de sa documentation.
+          New-Item -ItemType Directory -Force staging | Out-Null
+          Copy-Item 'Freeze Ray.exe' staging\
+          Copy-Item README.md staging\
+          Copy-Item documentation staging\documentation -Recurse
+          Compress-Archive -Path staging\* -DestinationPath "dist\FreezeRay-$v-windows.zip" -Force
+
+          # Le binaire seul, pour qui ne veut pas décompresser.
+          Copy-Item 'Freeze Ray.exe' "dist\FreezeRay-$v-windows.exe"
+
+          # Empreintes : permettent de vérifier ce qui a été téléchargé.
+          Get-ChildItem dist -File | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)"
+          } | Set-Content dist\SHA256SUMS.txt -Encoding ascii
+
+          Get-Content dist\SHA256SUMS.txt
+          "files=dist/*" >> $env:GITHUB_OUTPUT
+
+      - name: Conserver les fichiers comme artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: freeze-ray-windows
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Attacher les fichiers à la release
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = Get-ChildItem dist -File | ForEach-Object { $_.FullName }
+          Write-Host "à publier : $($files.Count) fichier(s)"
+          # --clobber : rejouer le workflow remplace les fichiers au lieu d'échouer.
+          gh release upload '${{ github.event.release.tag_name }}' @files --clobber

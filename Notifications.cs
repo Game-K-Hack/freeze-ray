@@ -99,10 +99,12 @@ namespace FreezeRay
             id = 0;
             try
             {
-                FieldInfo windowField = typeof(NotifyIcon).GetField("window",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-                FieldInfo idField = typeof(NotifyIcon).GetField("id",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
+                // .NET Framework nomme ces champs « window » et « id » ; les
+                // versions modernes de WinForms les préfixent d'un souligné.
+                // On accepte les deux : sinon une migration ferait silencieusement
+                // retomber les bulles sur l'icône système.
+                FieldInfo windowField = FindField("window", "_window");
+                FieldInfo idField = FindField("id", "_id");
                 if (windowField == null || idField == null) return false;
 
                 NativeWindow window = windowField.GetValue(tray) as NativeWindow;
@@ -116,6 +118,17 @@ namespace FreezeRay
             {
                 return false;
             }
+        }
+
+        private static FieldInfo FindField(params string[] names)
+        {
+            foreach (string name in names)
+            {
+                FieldInfo field = typeof(NotifyIcon).GetField(name,
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                if (field != null) return field;
+            }
+            return null;
         }
 
         private static string Truncate(string value, int max)

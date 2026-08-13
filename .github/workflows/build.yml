@@ -1,0 +1,53 @@
+# Vérification à chaque poussée : la compilation passe-t-elle encore, et les
+# tables de traduction sont-elles cohérentes ?
+#
+# Une clé manquante dans une langue ne se voit pas à l'exécution : le texte
+# retombe silencieusement sur l'anglais. D'où un contrôle automatique.
+
+name: Build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+  pull_request:
+    paths-ignore:
+      - "**/*.md"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compilation et contrôles
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compiler
+        shell: cmd
+        run: build.bat
+
+      - name: Vérifier le binaire produit
+        shell: pwsh
+        run: |
+          $exe = 'Freeze Ray.exe'
+          if (-not (Test-Path $exe)) { Write-Error 'Compilation sans binaire produit.'; exit 1 }
+          $name = [Reflection.AssemblyName]::GetAssemblyName((Resolve-Path $exe))
+          Write-Host "$($name.Name) $($name.Version) — $((Get-Item $exe).Length) octets"
+
+      - name: Contrôler les traductions
+        shell: pwsh
+        run: |
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          & $csc /nologo /codepage:65001 /out:CheckStrings.exe tools\CheckStrings.cs Strings.cs
+          if ($LASTEXITCODE -ne 0) { Write-Error 'Compilation du contrôle impossible.'; exit 1 }
+          .\CheckStrings.exe
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Conserver le binaire
+        uses: actions/upload-artifact@v4
+        with:
+          name: freeze-ray-dev
+          path: Freeze Ray.exe
+          if-no-files-found: error

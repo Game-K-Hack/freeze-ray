@@ -1,0 +1,8 @@
+# Résultats de compilation : reproduits par build.bat et par le workflow Release.
+Freeze Ray.exe
+*.exe
+*.pdb
+
+# Dossiers de publication du workflow
+dist/
+staging/
