@@ -108,14 +108,7 @@ jobs:
           Copy-Item documentation staging\documentation -Recurse
           Compress-Archive -Path staging\* -DestinationPath "dist\FreezeRay-$v-portable.zip" -Force
 
-          # Empreintes : permettent de vérifier ce qui a été téléchargé.
-          Get-ChildItem dist -File | ForEach-Object {
-            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
-            "$hash  $($_.Name)"
-          } | Set-Content dist\SHA256SUMS.txt -Encoding ascii
-
-          Get-Content dist\SHA256SUMS.txt
-          "files=dist/*" >> $env:GITHUB_OUTPUT
+          Get-ChildItem dist -File | ForEach-Object { "$($_.Name)  $($_.Length) octets" }
 
       - name: Conserver les fichiers comme artefact
         uses: actions/upload-artifact@v4
@@ -134,3 +127,36 @@ jobs:
           Write-Host "à publier : $($files.Count) fichier(s)"
           # --clobber : rejouer le workflow remplace les fichiers au lieu d'échouer.
           gh release upload '${{ github.event.release.tag_name }}' @files --clobber
+
+      # Les empreintes vont dans la description de la release plutôt que dans un
+      # fichier joint : elles restent lisibles sans rien télécharger, et l'on ne
+      # peut pas altérer les fichiers sans que l'écart saute aux yeux.
+      - name: Ajouter les empreintes à la description
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ github.event.release.tag_name }}'
+
+          $rows = Get-ChildItem dist -File | Sort-Object Name | ForEach-Object {
+            $md5 = (Get-FileHash $_.FullName -Algorithm MD5).Hash.ToLower()
+            $sha = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "| $($_.Name) | ``$md5`` | ``$sha`` |"
+          }
+
+          $table = "### Checksum`n`n| Filename | md5 | sha256 |`n| --- | --- | --- |`n" +
+                   ($rows -join "`n")
+
+          $body = gh release view $tag --json body --jq .body
+          if ($null -eq $body) { $body = '' }
+
+          # Rejouer le workflow doit remplacer le tableau, pas en empiler un second.
+          $marker = $body.IndexOf('### Checksum')
+          if ($marker -ge 0) { $body = $body.Substring(0, $marker) }
+
+          $notes = ($body.TrimEnd() + "`n`n" + $table).TrimStart()
+          Set-Content notes.md -Value $notes -Encoding utf8 -NoNewline
+          Write-Host $table
+
+          gh release edit $tag --notes-file notes.md
