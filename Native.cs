@@ -13,6 +13,19 @@ namespace KeepScreen
         public const uint SWP_NOMOVE = 0x0002;
         public const uint SWP_NOACTIVATE = 0x0010;
 
+        /// <summary>
+        /// Supprime l'envoi de WM_WINDOWPOSCHANGING a la fenetre visee.
+        /// Indispensable : une application peut modifier cette notification au
+        /// passage pour annuler le changement de profondeur, et SetWindowPos
+        /// renvoie alors un succes sans avoir rien fait. VLC en lecture video
+        /// se comporte ainsi.
+        /// </summary>
+        public const uint SWP_NOSENDCHANGING = 0x0400;
+
+        /// <summary>Passage au premier plan : refuse par certaines applications sans cet indicateur.</summary>
+        public const uint SWP_TOPMOST_FLAGS =
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOSENDCHANGING;
+
         public const int GWL_EXSTYLE = -20;
         public const int WS_EX_TOPMOST = 0x0008;
 

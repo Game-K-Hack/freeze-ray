@@ -118,6 +118,21 @@ build.bat
    endroit.
 5. Pour la libérer : cliquer le logo sur sa barre de titre.
 
+## Le veto des applications sur le premier plan
+
+Certaines applications **refusent** qu'on modifie leur ordre de profondeur : elles
+interceptent `WM_WINDOWPOSCHANGING` et neutralisent le changement au passage.
+`SetWindowPos` renvoie alors un **succès sans avoir rien fait** — c'est le cas de
+VLC pendant la lecture d'une vidéo (constaté : drapeau toujours absent, y compris
+une seconde après l'appel).
+
+D'où deux précautions dans le code :
+
+- l'indicateur `SWP_NOSENDCHANGING` supprime cette notification, ce qui prive
+  l'application de son droit de veto ;
+- l'état est **relu après coup** au lieu de faire confiance au code de retour, de
+  sorte qu'un échec réel soit signalé plutôt que passé sous silence.
+
 ## Limites connues
 
 - Une fenêtre appartenant à un processus **élevé** (lancé en administrateur) ne

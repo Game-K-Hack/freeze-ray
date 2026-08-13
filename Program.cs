@@ -206,12 +206,44 @@ namespace KeepScreen
 
             // Cliquer le bureau, la barre des tâches ou l'icône revient à
             // renoncer : on abandonne sans avertissement, comme le ferait Échap.
-            if (!IsUsableTarget(hwnd)) return;
+            if (IsAbortSurface(hwnd)) return;
+
+            // Tout autre refus doit se voir : un échec muet donne l'impression
+            // que la fonction ne marche plus.
+            if (!IsUsableTarget(hwnd))
+            {
+                Notify("Fenêtre inutilisable",
+                    "KeepScreen n'a pas pu identifier de fenêtre à cet endroit.",
+                    ToolTipIcon.Warning);
+                return;
+            }
 
             if (_pendingAction == PickAction.AllDesktops)
                 ToggleAllDesktops(hwnd);
             else
                 ToggleTopMost(hwnd);
+        }
+
+        /// <summary>
+        /// Surfaces sur lesquelles un clic signifie « laisse tomber » : bureau,
+        /// barre des tâches, ou nos propres fenêtres.
+        /// </summary>
+        private bool IsAbortSurface(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero) return true;
+            if (Native.GetProcessId(hwnd) == _ownProcessId) return true;
+
+            switch (Native.GetClass(hwnd))
+            {
+                case "Shell_TrayWnd":
+                case "Shell_SecondaryTrayWnd":
+                case "NotifyIconOverflowWindow":
+                case "Progman":
+                case "WorkerW":
+                case "MultitaskingViewFrame":
+                    return true;
+            }
+            return false;
         }
 
         private bool IsUsableTarget(IntPtr hwnd)
@@ -263,12 +295,17 @@ namespace KeepScreen
             string title = Native.GetTitle(hwnd);
             bool wasTop = Native.IsTopMost(hwnd);
             IntPtr after = wasTop ? Native.HWND_NOTOPMOST : Native.HWND_TOPMOST;
-            bool ok = Native.SetWindowPos(hwnd, after, 0, 0, 0, 0,
-                Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
+            bool ok = Native.SetWindowPos(hwnd, after, 0, 0, 0, 0, Native.SWP_TOPMOST_FLAGS);
 
-            if (!ok)
+            // Une application privilégiée rejette silencieusement nos appels :
+            // on relit l'état plutôt que de croire le code de retour.
+            if (!ok || Native.IsTopMost(hwnd) == wasTop)
             {
-                Notify("Échec", "Impossible de modifier « " + title + " ».", ToolTipIcon.Error);
+                Notify("Échec",
+                    "Impossible de modifier « " + title + " ».\n" +
+                    "Une application lancée en administrateur exige que KeepScreen " +
+                    "le soit aussi.",
+                    ToolTipIcon.Error);
                 return;
             }
 
@@ -295,7 +332,7 @@ namespace KeepScreen
                 if (Native.IsTopMost(hwnd))
                 {
                     Native.SetWindowPos(hwnd, Native.HWND_NOTOPMOST, 0, 0, 0, 0,
-                        Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
+                        Native.SWP_TOPMOST_FLAGS);
                 }
             }
             RemoveMarker(hwnd);
