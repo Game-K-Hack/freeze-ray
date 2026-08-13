@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Reflection;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
@@ -32,47 +34,56 @@ namespace KeepScreen
 
     internal sealed class TrayContext : ApplicationContext
     {
-        private const int HOTKEY_PIN = 1;
-        private const int HOTKEY_TOPMOST = 2;
-        private const int HOTKEY_UNPIN_ALL = 3;
-
         private const string RUN_KEY = @"Software\Microsoft\Windows\CurrentVersion\Run";
         private const string RUN_VALUE = "KeepScreen";
 
-        private readonly HotkeyWindow _window;
         private readonly NotifyIcon _tray;
         private readonly ContextMenuStrip _menu;
+        private readonly ToolStripMenuItem _targetLabel;
+        private readonly ToolStripMenuItem _pinItem;
+        private readonly ToolStripMenuItem _topMostItem;
         private readonly ToolStripMenuItem _pinnedRoot;
+        private readonly ToolStripMenuItem _unpinAll;
         private readonly ToolStripMenuItem _autoStart;
         private readonly ToolStripMenuItem _cleanOnExit;
         private readonly List<IntPtr> _pinned = new List<IntPtr>();
         private readonly Icon _iconIdle;
         private readonly Icon _iconActive;
+        private readonly Timer _focusWatcher;
+        private readonly ForegroundHelper _helper;
+        private readonly int _ownProcessId;
+
+        /// <summary>
+        /// Derniere fenetre "utile" passee au premier plan. Cliquer sur l'icone
+        /// donne le focus a la barre des taches : sans ce suivi, la cible serait
+        /// perdue au moment meme ou l'on ouvre le menu.
+        /// </summary>
+        private IntPtr _target = IntPtr.Zero;
 
         public TrayContext()
         {
+            _ownProcessId = Process.GetCurrentProcess().Id;
             _iconIdle = BuildIcon(Color.FromArgb(120, 130, 140));
             _iconActive = BuildIcon(Color.FromArgb(220, 90, 60));
-
-            _window = new HotkeyWindow();
-            _window.HotkeyPressed += OnHotkey;
+            _helper = new ForegroundHelper();
 
             _menu = new ContextMenuStrip();
             _menu.Opening += delegate { RefreshMenu(); };
 
-            ToolStripMenuItem pinItem = new ToolStripMenuItem(
-                "Epingler / desepingler la fenetre active\tCtrl+Alt+K");
-            pinItem.Click += delegate { TogglePin(Native.GetForegroundWindow()); };
+            _targetLabel = new ToolStripMenuItem("Aucune fenetre");
+            _targetLabel.Enabled = false;
 
-            ToolStripMenuItem topItem = new ToolStripMenuItem(
-                "Toujours au premier plan\tCtrl+Alt+T");
-            topItem.Click += delegate { ToggleTopMost(Native.GetForegroundWindow()); };
+            _pinItem = new ToolStripMenuItem("Epingler sur tous les bureaux");
+            _pinItem.Click += delegate { TogglePin(_target); };
 
-            _pinnedRoot = new ToolStripMenuItem("Fenetres epinglees");
+            _topMostItem = new ToolStripMenuItem("Toujours au premier plan");
+            _topMostItem.Click += delegate { ToggleTopMost(_target); };
+
+            _pinnedRoot = new ToolStripMenuItem("Aucune fenetre epinglee");
             _pinnedRoot.Enabled = false;
 
-            ToolStripMenuItem unpinAll = new ToolStripMenuItem("Tout desepingler\tCtrl+Alt+U");
-            unpinAll.Click += delegate { UnpinAll(true); };
+            _unpinAll = new ToolStripMenuItem("Tout desepingler");
+            _unpinAll.Click += delegate { UnpinAll(true); };
 
             _autoStart = new ToolStripMenuItem("Demarrer avec Windows");
             _autoStart.CheckOnClick = true;
@@ -86,11 +97,12 @@ namespace KeepScreen
             ToolStripMenuItem quit = new ToolStripMenuItem("Quitter");
             quit.Click += delegate { ExitThread(); };
 
-            _menu.Items.Add(pinItem);
-            _menu.Items.Add(topItem);
+            _menu.Items.Add(_targetLabel);
+            _menu.Items.Add(_pinItem);
+            _menu.Items.Add(_topMostItem);
             _menu.Items.Add(new ToolStripSeparator());
             _menu.Items.Add(_pinnedRoot);
-            _menu.Items.Add(unpinAll);
+            _menu.Items.Add(_unpinAll);
             _menu.Items.Add(new ToolStripSeparator());
             _menu.Items.Add(_autoStart);
             _menu.Items.Add(_cleanOnExit);
@@ -102,13 +114,15 @@ namespace KeepScreen
             _tray.Text = "KeepScreen";
             _tray.Visible = true;
             _tray.ContextMenuStrip = _menu;
-            _tray.MouseClick += delegate(object s, MouseEventArgs e)
-            {
-                if (e.Button == MouseButtons.Left)
-                    TogglePin(Native.GetForegroundWindow());
-            };
+            _tray.MouseClick += OnTrayClick;
 
-            RegisterHotkeys();
+            // Le suivi doit rester leger : un sondage court suffit et evite
+            // d'installer un hook systeme.
+            _focusWatcher = new Timer();
+            _focusWatcher.Interval = 200;
+            _focusWatcher.Tick += delegate { TrackForeground(); };
+            _focusWatcher.Start();
+            TrackForeground();
 
             if (!VirtualDesktop.Available)
             {
@@ -117,68 +131,66 @@ namespace KeepScreen
                     (VirtualDesktop.InitError ?? "raison inconnue"),
                     ToolTipIcon.Error);
             }
-            else
-            {
-                Notify("KeepScreen actif",
-                    "Ctrl+Alt+K : garder la fenetre active sur tous les bureaux.\n" +
-                    "Ctrl+Alt+T : toujours au premier plan.",
-                    ToolTipIcon.Info);
-            }
         }
 
-        private void RegisterHotkeys()
+        private void OnTrayClick(object sender, MouseEventArgs e)
         {
-            uint mods = Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_NOREPEAT;
-            List<string> failed = new List<string>();
-
-            if (!Native.RegisterHotKey(_window.Handle, HOTKEY_PIN, mods, (uint)Keys.K))
-                failed.Add("Ctrl+Alt+K");
-            if (!Native.RegisterHotKey(_window.Handle, HOTKEY_TOPMOST, mods, (uint)Keys.T))
-                failed.Add("Ctrl+Alt+T");
-            if (!Native.RegisterHotKey(_window.Handle, HOTKEY_UNPIN_ALL, mods, (uint)Keys.U))
-                failed.Add("Ctrl+Alt+U");
-
-            if (failed.Count > 0)
-            {
-                MessageBox.Show(
-                    "Raccourci(s) deja utilise(s) par une autre application : " +
-                    string.Join(", ", failed.ToArray()) +
-                    "\n\nLe menu de l'icone reste utilisable.",
-                    "KeepScreen", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
+            if (e.Button != MouseButtons.Left) return; // le clic droit est gere par NotifyIcon
+            ShowMenu();
         }
 
-        private void OnHotkey(object sender, int id)
+        private void ShowMenu()
         {
-            switch (id)
+            // NotifyIcon sait placer son menu correctement selon le bord ou se
+            // trouve la barre des taches ; on reutilise ce placement plutot que
+            // de deviner une position a partir du curseur.
+            MethodInfo show = typeof(NotifyIcon).GetMethod("ShowContextMenu",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            if (show != null)
             {
-                case HOTKEY_PIN:
-                    TogglePin(Native.GetForegroundWindow());
-                    break;
-                case HOTKEY_TOPMOST:
-                    ToggleTopMost(Native.GetForegroundWindow());
-                    break;
-                case HOTKEY_UNPIN_ALL:
-                    UnpinAll(true);
-                    break;
+                show.Invoke(_tray, null);
+                return;
             }
+
+            // Repli : le passage au premier plan est indispensable pour que le
+            // menu se referme quand on clique ailleurs.
+            Native.SetForegroundWindow(_helper.Handle);
+            _menu.Show(Cursor.Position);
         }
 
-        private IntPtr ResolveTarget(IntPtr hwnd)
+        private void TrackForeground()
         {
-            IntPtr root = Native.GetRootWindow(hwnd);
-            if (root == IntPtr.Zero || !Native.IsWindow(root)) return IntPtr.Zero;
-            // On ignore notre propre fenetre-message et le bureau.
-            if (root == _window.Handle) return IntPtr.Zero;
-            return root;
+            IntPtr hwnd = Native.GetRootWindow(Native.GetForegroundWindow());
+            if (!IsUsableTarget(hwnd)) return;
+            _target = hwnd;
+        }
+
+        private bool IsUsableTarget(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero || !Native.IsWindow(hwnd) || !Native.IsWindowVisible(hwnd))
+                return false;
+            if (Native.GetProcessId(hwnd) == _ownProcessId)
+                return false;
+
+            switch (Native.GetClass(hwnd))
+            {
+                case "Shell_TrayWnd":            // barre des taches
+                case "Shell_SecondaryTrayWnd":
+                case "NotifyIconOverflowWindow": // debordement de la zone de notification
+                case "Progman":                  // bureau
+                case "WorkerW":
+                case "Windows.UI.Core.CoreWindow": // menu Demarrer, recherche, centre de notifications
+                case "MultitaskingViewFrame":      // vue des taches
+                    return false;
+            }
+            return true;
         }
 
         private void TogglePin(IntPtr hwnd)
         {
-            IntPtr target = ResolveTarget(hwnd);
-            if (target == IntPtr.Zero)
+            if (!IsUsableTarget(hwnd))
             {
-                Notify("KeepScreen", "Aucune fenetre active exploitable.", ToolTipIcon.Warning);
+                Notify("KeepScreen", "Aucune fenetre exploitable.", ToolTipIcon.Warning);
                 return;
             }
 
@@ -189,9 +201,9 @@ namespace KeepScreen
                 return;
             }
 
-            string title = Native.GetTitle(target);
-            bool wasPinned = VirtualDesktop.IsPinned(target);
-            bool ok = wasPinned ? VirtualDesktop.Unpin(target) : VirtualDesktop.Pin(target);
+            string title = Native.GetTitle(hwnd);
+            bool wasPinned = VirtualDesktop.IsPinned(hwnd);
+            bool ok = wasPinned ? VirtualDesktop.Unpin(hwnd) : VirtualDesktop.Pin(hwnd);
 
             if (!ok)
             {
@@ -205,12 +217,12 @@ namespace KeepScreen
 
             if (wasPinned)
             {
-                _pinned.Remove(target);
+                _pinned.Remove(hwnd);
                 Notify("Desepinglee", title, ToolTipIcon.Info);
             }
             else
             {
-                if (!_pinned.Contains(target)) _pinned.Add(target);
+                if (!_pinned.Contains(hwnd)) _pinned.Add(hwnd);
                 Notify("Epinglee sur tous les bureaux", title, ToolTipIcon.Info);
             }
 
@@ -219,16 +231,15 @@ namespace KeepScreen
 
         private void ToggleTopMost(IntPtr hwnd)
         {
-            IntPtr target = ResolveTarget(hwnd);
-            if (target == IntPtr.Zero) return;
+            if (!IsUsableTarget(hwnd)) return;
 
-            bool top = Native.IsTopMost(target);
+            bool top = Native.IsTopMost(hwnd);
             IntPtr after = top ? Native.HWND_NOTOPMOST : Native.HWND_TOPMOST;
-            bool ok = Native.SetWindowPos(target, after, 0, 0, 0, 0,
+            bool ok = Native.SetWindowPos(hwnd, after, 0, 0, 0, 0,
                 Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
 
             Notify(ok ? (top ? "Premier plan desactive" : "Toujours au premier plan") : "Echec",
-                Native.GetTitle(target),
+                Native.GetTitle(hwnd),
                 ok ? ToolTipIcon.Info : ToolTipIcon.Error);
         }
 
@@ -262,25 +273,45 @@ namespace KeepScreen
             _tray.Text = text.Length > 63 ? text.Substring(0, 63) : text;
         }
 
+        private static string Ellipsize(string text, int max)
+        {
+            return text.Length > max ? text.Substring(0, max - 3) + "..." : text;
+        }
+
         private void RefreshMenu()
         {
             PruneDeadWindows();
-            // On resynchronise avec l'etat reel : l'utilisateur a pu desepingler
+            // Resynchronisation avec l'etat reel : l'utilisateur a pu desepingler
             // depuis la vue des taches.
-            _pinned.RemoveAll(delegate(IntPtr h) { return !VirtualDesktop.IsPinned(h); });
+            if (VirtualDesktop.Available)
+                _pinned.RemoveAll(delegate(IntPtr h) { return !VirtualDesktop.IsPinned(h); });
+
+            bool hasTarget = IsUsableTarget(_target);
+            _targetLabel.Text = hasTarget
+                ? "Fenetre : " + Ellipsize(Native.GetTitle(_target), 50)
+                : "Aucune fenetre selectionnee";
+
+            _pinItem.Enabled = hasTarget && VirtualDesktop.Available;
+            _pinItem.Checked = hasTarget && VirtualDesktop.Available && VirtualDesktop.IsPinned(_target);
+            _pinItem.Text = _pinItem.Checked
+                ? "Ne plus garder sur tous les bureaux"
+                : "Garder sur tous les bureaux";
+
+            _topMostItem.Enabled = hasTarget;
+            _topMostItem.Checked = hasTarget && Native.IsTopMost(_target);
 
             _pinnedRoot.DropDownItems.Clear();
             _pinnedRoot.Enabled = _pinned.Count > 0;
             _pinnedRoot.Text = _pinned.Count > 0
                 ? "Fenetres epinglees (" + _pinned.Count + ")"
                 : "Aucune fenetre epinglee";
+            _unpinAll.Enabled = _pinned.Count > 0;
 
             foreach (IntPtr hwnd in _pinned)
             {
                 IntPtr captured = hwnd;
-                string title = Native.GetTitle(captured);
-                if (title.Length > 60) title = title.Substring(0, 57) + "...";
-                ToolStripMenuItem item = new ToolStripMenuItem(title + "   (cliquer pour desepingler)");
+                ToolStripMenuItem item = new ToolStripMenuItem(
+                    Ellipsize(Native.GetTitle(captured), 60) + "   (cliquer pour desepingler)");
                 item.Click += delegate { TogglePin(captured); };
                 _pinnedRoot.DropDownItems.Add(item);
             }
@@ -351,16 +382,14 @@ namespace KeepScreen
         {
             if (disposing)
             {
+                if (_focusWatcher != null) _focusWatcher.Stop();
                 if (_cleanOnExit != null && _cleanOnExit.Checked) UnpinAll(false);
-
-                Native.UnregisterHotKey(_window.Handle, HOTKEY_PIN);
-                Native.UnregisterHotKey(_window.Handle, HOTKEY_TOPMOST);
-                Native.UnregisterHotKey(_window.Handle, HOTKEY_UNPIN_ALL);
 
                 _tray.Visible = false;
                 _tray.Dispose();
                 _menu.Dispose();
-                _window.DestroyHandle();
+                if (_focusWatcher != null) _focusWatcher.Dispose();
+                _helper.DestroyHandle();
                 _iconIdle.Dispose();
                 _iconActive.Dispose();
             }
@@ -368,21 +397,15 @@ namespace KeepScreen
         }
     }
 
-    /// <summary>Fenetre invisible dediee a la reception des WM_HOTKEY.</summary>
-    internal sealed class HotkeyWindow : NativeWindow
+    /// <summary>
+    /// Fenetre invisible servant uniquement de cible a SetForegroundWindow
+    /// lorsque le menu doit etre affiche manuellement.
+    /// </summary>
+    internal sealed class ForegroundHelper : NativeWindow
     {
-        public event EventHandler<int> HotkeyPressed;
-
-        public HotkeyWindow()
+        public ForegroundHelper()
         {
             CreateHandle(new CreateParams());
-        }
-
-        protected override void WndProc(ref Message m)
-        {
-            if (m.Msg == Native.WM_HOTKEY && HotkeyPressed != null)
-                HotkeyPressed(this, m.WParam.ToInt32());
-            base.WndProc(ref m);
         }
     }
 }

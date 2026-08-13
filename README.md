@@ -8,18 +8,29 @@ Il s'appuie sur le même mécanisme que le clic droit *« Afficher cette fenêtr
 tous les bureaux »* de la vue des tâches, exposé par les interfaces COM du shell
 Windows (`IApplicationViewCollection` / `IVirtualDesktopPinnedApps`).
 
-## Raccourcis
+## Utilisation : tout passe par l'icône
 
-| Raccourci | Effet |
+Aucun raccourci clavier global n'est enregistré, donc aucun risque de conflit
+avec une autre application. **Un clic (gauche ou droit) sur l'icône ouvre le
+menu** :
+
+| Entrée | Effet |
 |---|---|
-| `Ctrl + Alt + K` | Épingle / désépingle la fenêtre active sur **tous les bureaux** |
-| `Ctrl + Alt + T` | Bascule « toujours au premier plan » (comportement DeskPin classique) |
-| `Ctrl + Alt + U` | Désépingle toutes les fenêtres |
-| Clic gauche sur l'icône | Équivaut à `Ctrl + Alt + K` |
-| Clic droit sur l'icône | Menu : liste des fenêtres épinglées, démarrage automatique, quitter |
+| *Fenêtre : …* | Rappelle la fenêtre visée (dernière fenêtre active) |
+| **Garder sur tous les bureaux** | Épingle / désépingle cette fenêtre — cochée quand elle l'est |
+| **Toujours au premier plan** | Bascule le `TOPMOST` (comportement DeskPin classique) |
+| **Fenêtres épinglées (n)** | Liste ; cliquer sur une entrée la désépingle |
+| **Tout désépingler** | Remet tout à plat |
+| **Démarrer avec Windows** | Entrée dans `HKCU\...\CurrentVersion\Run` |
+| **Tout désépingler en quittant** | Activé par défaut, évite de laisser des fenêtres collées |
+| **Quitter** | |
 
-L'icône de la zone de notification passe du gris à l'orange dès qu'au moins une
-fenêtre est épinglée.
+Comme cliquer sur l'icône donne le focus à la barre des tâches, KeepScreen
+mémorise en permanence la dernière fenêtre réellement active (barre des tâches,
+bureau, menu Démarrer et vue des tâches sont ignorés). C'est cette fenêtre-là,
+dont le titre est affiché en tête du menu, qui est visée.
+
+L'icône passe du gris à l'orange dès qu'au moins une fenêtre est épinglée.
 
 ## Compilation
 
@@ -32,16 +43,13 @@ build.bat
 
 Produit `KeepScreen.exe` à côté des sources.
 
-## Utilisation
+## Marche à suivre
 
 1. Lancer `KeepScreen.exe` (il n'affiche pas de fenêtre, seulement l'icône).
-2. Cliquer sur la fenêtre à conserver, puis `Ctrl + Alt + K`.
-3. Changer de bureau avec `Ctrl + Win + ←/→` : la fenêtre reste affichée, au même
+2. Cliquer sur la fenêtre à conserver pour l'activer.
+3. Cliquer sur l'icône → *Garder sur tous les bureaux*.
+4. Changer de bureau avec `Ctrl + Win + ←/→` : la fenêtre reste affichée, au même
    endroit.
-
-Menu de l'icône : *Démarrer avec Windows* ajoute/retire une entrée dans
-`HKCU\...\CurrentVersion\Run`. *Tout désépingler en quittant* (activé par défaut)
-évite de laisser des fenêtres épinglées après la fermeture de l'application.
 
 ## Limites connues
 

@@ -6,14 +6,6 @@ namespace KeepScreen
 {
     internal static class Native
     {
-        public const int WM_HOTKEY = 0x0312;
-
-        public const uint MOD_ALT = 0x0001;
-        public const uint MOD_CONTROL = 0x0002;
-        public const uint MOD_SHIFT = 0x0004;
-        public const uint MOD_WIN = 0x0008;
-        public const uint MOD_NOREPEAT = 0x4000;
-
         public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
         public static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
 
@@ -23,19 +15,18 @@ namespace KeepScreen
 
         public const int GWL_EXSTYLE = -20;
         public const int WS_EX_TOPMOST = 0x0008;
-        public const int WS_EX_TOOLWINDOW = 0x0080;
-
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
         [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
         public static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsWindowVisible(IntPtr hWnd);
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
@@ -50,6 +41,9 @@ namespace KeepScreen
         [DllImport("user32.dll")]
         public static extern IntPtr GetAncestor(IntPtr hWnd, uint flags);
 
+        [DllImport("user32.dll")]
+        public static extern int GetWindowThreadProcessId(IntPtr hWnd, out int processId);
+
         [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
         private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
 
@@ -63,6 +57,13 @@ namespace KeepScreen
                 : GetWindowLong32(hWnd, GWL_EXSTYLE);
         }
 
+        public static string GetClass(IntPtr hWnd)
+        {
+            StringBuilder sb = new StringBuilder(256);
+            GetClassName(hWnd, sb, sb.Capacity);
+            return sb.ToString();
+        }
+
         public static string GetTitle(IntPtr hWnd)
         {
             StringBuilder sb = new StringBuilder(512);
@@ -70,10 +71,15 @@ namespace KeepScreen
             string title = sb.ToString().Trim();
             if (title.Length > 0) return title;
 
-            sb.Length = 0;
-            GetClassName(hWnd, sb, sb.Capacity);
-            string cls = sb.ToString().Trim();
+            string cls = GetClass(hWnd).Trim();
             return cls.Length > 0 ? cls : "(sans titre)";
+        }
+
+        public static int GetProcessId(IntPtr hWnd)
+        {
+            int pid;
+            GetWindowThreadProcessId(hWnd, out pid);
+            return pid;
         }
 
         /// <summary>Remonte a la fenetre racine appartenant a l'utilisateur (GA_ROOTOWNER).</summary>
