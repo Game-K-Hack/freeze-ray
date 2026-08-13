@@ -7,10 +7,11 @@ if not exist "%CSC%" (
   exit /b 1
 )
 
-"%CSC%" /nologo /target:winexe /platform:anycpu /optimize+ ^
+rem /codepage:65001 : les sources sont en UTF-8 sans BOM (chaines accentuees).
+"%CSC%" /nologo /target:winexe /platform:anycpu /optimize+ /codepage:65001 ^
   /out:"%~dp0KeepScreen.exe" ^
   /r:System.dll /r:System.Core.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll ^
-  "%~dp0Program.cs" "%~dp0Native.cs" "%~dp0VirtualDesktop.cs"
+  "%~dp0Program.cs" "%~dp0Native.cs" "%~dp0VirtualDesktop.cs" "%~dp0WindowPicker.cs"
 
 if errorlevel 1 (
   echo.

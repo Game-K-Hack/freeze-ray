@@ -16,21 +16,27 @@ menu** :
 
 | Entrée | Effet |
 |---|---|
-| *Fenêtre : …* | Rappelle la fenêtre visée (dernière fenêtre active) |
-| **Garder sur tous les bureaux** | Épingle / désépingle cette fenêtre — cochée quand elle l'est |
-| **Toujours au premier plan** | Bascule le `TOPMOST` (comportement DeskPin classique) |
-| **Fenêtres épinglées (n)** | Liste ; cliquer sur une entrée la désépingle |
-| **Tout désépingler** | Remet tout à plat |
+| **Maintenir à l'écran (tous les bureaux)…** | Passe en désignation, puis la fenêtre cliquée suit tous les bureaux |
+| **Premier plan (toujours visible)…** | Passe en désignation, puis la fenêtre cliquée passe en `TOPMOST` |
+| **Fenêtres verrouillées (n)** | Liste avec l'état de chacune ; cliquer sur une entrée la libère |
+| **Tout libérer** | Remet toutes les fenêtres à leur état normal |
 | **Démarrer avec Windows** | Entrée dans `HKCU\...\CurrentVersion\Run` |
-| **Tout désépingler en quittant** | Activé par défaut, évite de laisser des fenêtres collées |
+| **Tout libérer en quittant** | Activé par défaut, évite de laisser des fenêtres bloquées |
 | **Quitter** | |
 
-Comme cliquer sur l'icône donne le focus à la barre des tâches, KeepScreen
-mémorise en permanence la dernière fenêtre réellement active (barre des tâches,
-bureau, menu Démarrer et vue des tâches sont ignorés). C'est cette fenêtre-là,
-dont le titre est affiché en tête du menu, qui est visée.
+### Le mode désignation
 
-L'icône passe du gris à l'orange dès qu'au moins une fenêtre est épinglée.
+Les deux premières entrées fonctionnent comme DeskPin : après le clic, **le
+curseur devient une épingle** et le clic suivant choisit la fenêtre à verrouiller.
+Ce clic est consommé par KeepScreen, il n'actionne donc pas ce qui se trouve sous
+le pointeur.
+
+- **Échap**, un **clic droit**, ou un clic sur l'icône : annulent la désignation.
+- Désigner une fenêtre déjà verrouillée la libère (l'action est une bascule).
+- L'infobulle de l'icône indique en permanence l'état en cours.
+
+L'icône passe du gris à l'orange pendant la désignation et tant qu'au moins une
+fenêtre est verrouillée.
 
 ## Compilation
 
@@ -46,8 +52,8 @@ Produit `KeepScreen.exe` à côté des sources.
 ## Marche à suivre
 
 1. Lancer `KeepScreen.exe` (il n'affiche pas de fenêtre, seulement l'icône).
-2. Cliquer sur la fenêtre à conserver pour l'activer.
-3. Cliquer sur l'icône → *Garder sur tous les bureaux*.
+2. Cliquer sur l'icône → *Maintenir à l'écran (tous les bureaux)…*
+3. Le curseur devient une épingle : cliquer sur la fenêtre à conserver.
 4. Changer de bureau avec `Ctrl + Win + ←/→` : la fenêtre reste affichée, au même
    endroit.
 

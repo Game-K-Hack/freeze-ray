@@ -44,6 +44,70 @@ namespace KeepScreen
         [DllImport("user32.dll")]
         public static extern int GetWindowThreadProcessId(IntPtr hWnd, out int processId);
 
+        // --- Selection d'une fenetre a la souris ---
+
+        public const int WM_SETCURSOR = 0x0020;
+        public const int WM_CANCELMODE = 0x001F;
+        public const int WM_MOUSEMOVE = 0x0200;
+        public const int WM_LBUTTONUP = 0x0202;
+        public const int WM_RBUTTONUP = 0x0205;
+        public const int WM_CAPTURECHANGED = 0x0215;
+
+        public const int VK_ESCAPE = 0x1B;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct ICONINFO
+        {
+            [MarshalAs(UnmanagedType.Bool)] public bool fIcon;
+            public int xHotspot;
+            public int yHotspot;
+            public IntPtr hbmMask;
+            public IntPtr hbmColor;
+        }
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SetCapture(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetCapture();
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr WindowFromPoint(POINT point);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetCursorPos(out POINT point);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SetCursor(IntPtr hCursor);
+
+        [DllImport("user32.dll")]
+        public static extern short GetAsyncKeyState(int vKey);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetIconInfo(IntPtr hIcon, out ICONINFO info);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr CreateIconIndirect(ref ICONINFO info);
+
+        [DllImport("user32.dll")]
+        public static extern bool DestroyIcon(IntPtr hIcon);
+
+        [DllImport("user32.dll")]
+        public static extern bool DestroyCursor(IntPtr hCursor);
+
+        [DllImport("gdi32.dll")]
+        public static extern bool DeleteObject(IntPtr hObject);
+
         [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
         private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
 
