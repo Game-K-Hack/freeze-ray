@@ -1,4 +1,4 @@
-# KeepScreen
+# Freeze Ray
 
 Petit utilitaire de zone de notification, dans l'esprit de **DeskPin**, mais dont
 le but principal est de **garder une fenêtre visible et à la même place quand on
@@ -28,7 +28,7 @@ menu** :
 
 Les deux premières entrées fonctionnent comme DeskPin : après le clic, **le
 curseur prend la forme du logo** de l'application, signalant qu'une fenêtre est
-attendue ; le clic suivant la choisit. Ce clic est consommé par KeepScreen, il
+attendue ; le clic suivant la choisit. Ce clic est consommé par Freeze Ray, il
 n'actionne donc pas ce qui se trouve sous le pointeur.
 
 - **Échap** ou un **clic droit** annulent la désignation ; cliquer le bureau ou la
@@ -85,8 +85,8 @@ Windows suffit.
 build.bat
 ```
 
-Produit `KeepScreen.exe` à côté des sources. Le logo est **embarqué dans
-l'exécutable** : `KeepScreen.exe` fonctionne seul, sans le dossier `assets`.
+Produit `Freeze Ray.exe` à côté des sources. Le logo est **embarqué dans
+l'exécutable** : `Freeze Ray.exe` fonctionne seul, sans le dossier `assets`.
 
 ## Le logo
 
@@ -110,7 +110,7 @@ build.bat
 
 ## Marche à suivre
 
-1. Lancer `KeepScreen.exe` (il n'affiche pas de fenêtre, seulement l'icône).
+1. Lancer `Freeze Ray.exe` (il n'affiche pas de fenêtre, seulement l'icône).
 2. Cliquer sur l'icône → *Maintenir à l'écran (tous les bureaux)…*
 3. Le curseur devient le logo : cliquer sur la fenêtre à conserver. Elle reçoit le
    logo sur sa barre de titre.
@@ -133,10 +133,28 @@ D'où deux précautions dans le code :
 - l'état est **relu après coup** au lieu de faire confiance au code de retour, de
   sorte qu'un échec réel soit signalé plutôt que passé sous silence.
 
+## Les notifications
+
+Les bulles informatives affichent **le logo de l'application** au lieu du « i »
+bleu du système. WinForms ne le permet pas : `NotifyIcon.ShowBalloonTip` n'accepte
+que les icônes système et rejette toute valeur hors de son énumération. On
+s'adresse donc directement au shell (`Shell_NotifyIcon` avec `NIIF_USER`), en
+réutilisant l'identification interne de l'entrée créée par WinForms
+— voir [Notifications.cs](Notifications.cs). Si cette mécanique interne venait à
+changer, le code retombe sur la bulle standard.
+
+Les avertissements et les erreurs gardent volontairement les icônes système : à
+cet endroit, elles signalent bien mieux un problème.
+
+L'en-tête de la notification affiche `Freeze Ray.exe` : Windows y met le nom du
+fichier exécutable. Déclarer un `AppUserModelID` n'y change rien (vérifié) ; seule
+l'installation d'un raccourci dans le menu Démarrer permettrait d'afficher un nom
+sans extension.
+
 ## Limites connues
 
 - Une fenêtre appartenant à un processus **élevé** (lancé en administrateur) ne
-  peut être épinglée que si KeepScreen est lui aussi lancé en administrateur.
+  peut être épinglée que si Freeze Ray est lui aussi lancé en administrateur.
 - Les interfaces COM utilisées ne sont pas documentées par Microsoft et leurs
   identifiants changent selon les versions de Windows. Les GUID retenus ici sont
   ceux de **Windows 10 1803 → 22H2** ; vérifié sur la build **19045**. Sur

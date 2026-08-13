@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace KeepScreen
+namespace FreezeRay
 {
     internal static class Program
     {
@@ -15,12 +15,12 @@ namespace KeepScreen
         {
             bool createdNew;
             using (System.Threading.Mutex mutex =
-                   new System.Threading.Mutex(true, "KeepScreen.SingleInstance", out createdNew))
+                   new System.Threading.Mutex(true, "FreezeRay.SingleInstance", out createdNew))
             {
                 if (!createdNew)
                 {
-                    MessageBox.Show("KeepScreen est déjà lancé (icône dans la zone de notification).",
-                        "KeepScreen", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("Freeze Ray est déjà lancé (icône dans la zone de notification).",
+                        "Freeze Ray", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
 
@@ -41,7 +41,10 @@ namespace KeepScreen
     internal sealed class TrayContext : ApplicationContext
     {
         private const string RUN_KEY = @"Software\Microsoft\Windows\CurrentVersion\Run";
-        private const string RUN_VALUE = "KeepScreen";
+        private const string RUN_VALUE = "Freeze Ray";
+
+        /// <summary>Nom porté par l'application avant d'être renommée.</summary>
+        private const string LEGACY_RUN_VALUE = "KeepScreen";
 
         /// <summary>Suivi des marques : assez court pour coller au déplacement.</summary>
         private const int TRACK_INTERVAL = 90;
@@ -71,6 +74,7 @@ namespace KeepScreen
 
         public TrayContext()
         {
+            MigrateLegacyAutoStart();
             _ownProcessId = Process.GetCurrentProcess().Id;
             _helper = new ForegroundHelper();
 
@@ -137,7 +141,7 @@ namespace KeepScreen
 
             _tray = new NotifyIcon();
             _tray.Icon = Assets.TrayIcon;
-            _tray.Text = "KeepScreen";
+            _tray.Text = "Freeze Ray";
             _tray.Visible = true;
             _tray.ContextMenuStrip = _menu;
             _tray.MouseClick += OnTrayClick;
@@ -213,7 +217,7 @@ namespace KeepScreen
             if (!IsUsableTarget(hwnd))
             {
                 Notify("Fenêtre inutilisable",
-                    "KeepScreen n'a pas pu identifier de fenêtre à cet endroit.",
+                    "Freeze Ray n'a pas pu identifier de fenêtre à cet endroit.",
                     ToolTipIcon.Warning);
                 return;
             }
@@ -280,7 +284,7 @@ namespace KeepScreen
                 Notify("Échec",
                     "Impossible de modifier « " + title + " ».\n" +
                     "Les fenêtres d'applications lancées en administrateur exigent " +
-                    "que KeepScreen le soit aussi.",
+                    "que Freeze Ray le soit aussi.",
                     ToolTipIcon.Error);
                 return;
             }
@@ -303,7 +307,7 @@ namespace KeepScreen
             {
                 Notify("Échec",
                     "Impossible de modifier « " + title + " ».\n" +
-                    "Une application lancée en administrateur exige que KeepScreen " +
+                    "Une application lancée en administrateur exige que Freeze Ray " +
                     "le soit aussi.",
                     ToolTipIcon.Error);
                 return;
@@ -344,7 +348,7 @@ namespace KeepScreen
             foreach (WindowMarker marker in _markers.ToArray()) Release(marker.Target);
             UpdateTrayState();
             if (notify)
-                Notify("KeepScreen", count + " fenêtre(s) libérée(s).", ToolTipIcon.Info);
+                Notify("Freeze Ray", count + " fenêtre(s) libérée(s).", ToolTipIcon.Info);
         }
 
         // --- Marques posées sur les barres de titre ---
@@ -432,11 +436,11 @@ namespace KeepScreen
         {
             string text;
             if (_picker.IsActive)
-                text = "KeepScreen — désignez une fenêtre (Échap pour annuler)";
+                text = "Freeze Ray — désignez une fenêtre (Échap pour annuler)";
             else if (_markers.Count > 0)
-                text = "KeepScreen — " + _markers.Count + " fenêtre(s) verrouillée(s)";
+                text = "Freeze Ray — " + _markers.Count + " fenêtre(s) verrouillée(s)";
             else
-                text = "KeepScreen";
+                text = "Freeze Ray";
 
             // NotifyIcon.Text est limité à 63 caractères.
             _tray.Text = text.Length > 63 ? text.Substring(0, 63) : text;
@@ -490,13 +494,31 @@ namespace KeepScreen
 
         private void Notify(string title, string text, ToolTipIcon icon)
         {
-            _tray.BalloonTipTitle = title;
-            _tray.BalloonTipText = text;
-            _tray.BalloonTipIcon = icon;
-            _tray.ShowBalloonTip(2500);
+            Notifications.Show(_tray, title, text, icon, 2500);
         }
 
         // --- Démarrage automatique ---
+
+        /// <summary>
+        /// Reprend l'entrée de démarrage laissée par l'ancien nom : elle pointe
+        /// vers un exécutable qui n'existe plus, et resterait sinon orpheline.
+        /// </summary>
+        private static void MigrateLegacyAutoStart()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RUN_KEY, true))
+                {
+                    if (key == null || key.GetValue(LEGACY_RUN_VALUE) == null) return;
+                    key.DeleteValue(LEGACY_RUN_VALUE, false);
+                    key.SetValue(RUN_VALUE, "\"" + Application.ExecutablePath + "\"");
+                }
+            }
+            catch (Exception)
+            {
+                // Le démarrage automatique reste réglable depuis le menu.
+            }
+        }
 
         private static bool IsAutoStartEnabled()
         {
@@ -522,7 +544,7 @@ namespace KeepScreen
             catch (Exception ex)
             {
                 MessageBox.Show("Impossible de modifier le démarrage automatique : " + ex.Message,
-                    "KeepScreen", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    "Freeze Ray", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 _autoStart.Checked = IsAutoStartEnabled();
             }
         }

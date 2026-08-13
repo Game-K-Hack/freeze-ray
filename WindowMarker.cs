@@ -2,7 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace KeepScreen
+namespace FreezeRay
 {
     /// <summary>
     /// Petit logo posé sur la barre de titre d'une fenêtre verrouillée, à la

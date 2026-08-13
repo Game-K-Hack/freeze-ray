@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace KeepScreen
+namespace FreezeRay
 {
     internal static class Native
     {

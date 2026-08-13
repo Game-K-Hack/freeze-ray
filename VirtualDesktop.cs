@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace KeepScreen
+namespace FreezeRay
 {
     /// <summary>
     /// Acces aux interfaces COM non documentees du shell Windows 10/11 qui gerent

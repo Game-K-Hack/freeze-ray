@@ -2,7 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace KeepScreen
+namespace FreezeRay
 {
     /// <summary>
     /// Mode « désignation » à la DeskPin : le curseur prend la forme du logo et

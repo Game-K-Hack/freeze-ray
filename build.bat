@@ -16,13 +16,14 @@ rem /codepage:65001 : les sources sont en UTF-8 sans BOM (chaines accentuees).
 rem /win32icon    : icone de l'executable dans l'Explorateur et la barre des taches.
 rem /resource     : logo embarque, l'exe reste utilisable sans le dossier assets.
 "%CSC%" /nologo /target:winexe /platform:anycpu /optimize+ /codepage:65001 ^
-  /out:"%~dp0KeepScreen.exe" ^
+  /out:"%~dp0Freeze Ray.exe" ^
   /win32icon:"%~dp0assets\app.ico" ^
-  /resource:"%~dp0assets\app.ico",KeepScreen.app.ico ^
-  /resource:"%~dp0assets\icon.png",KeepScreen.logo.png ^
+  /resource:"%~dp0assets\app.ico",FreezeRay.app.ico ^
+  /resource:"%~dp0assets\icon.png",FreezeRay.logo.png ^
   /r:System.dll /r:System.Core.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll ^
   "%~dp0Program.cs" "%~dp0Native.cs" "%~dp0VirtualDesktop.cs" ^
-  "%~dp0WindowPicker.cs" "%~dp0WindowMarker.cs" "%~dp0Assets.cs"
+  "%~dp0WindowPicker.cs" "%~dp0WindowMarker.cs" "%~dp0Assets.cs" ^
+  "%~dp0Notifications.cs" "%~dp0AssemblyInfo.cs"
 
 if errorlevel 1 (
   echo.
@@ -31,5 +32,5 @@ if errorlevel 1 (
 )
 
 echo.
-echo OK : %~dp0KeepScreen.exe
+echo OK : %~dp0Freeze Ray.exe
 endlocal

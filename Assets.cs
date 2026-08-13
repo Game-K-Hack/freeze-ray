@@ -6,17 +6,17 @@ using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
 
-namespace KeepScreen
+namespace FreezeRay
 {
     /// <summary>
     /// Logo de l'application. Les fichiers sont embarqués dans l'exécutable au
-    /// moment de la compilation : KeepScreen.exe reste utilisable seul, sans le
+    /// moment de la compilation : Freeze Ray.exe reste utilisable seul, sans le
     /// dossier assets.
     /// </summary>
     internal static class Assets
     {
-        private const string ICON_RESOURCE = "KeepScreen.app.ico";
-        private const string LOGO_RESOURCE = "KeepScreen.logo.png";
+        private const string ICON_RESOURCE = "FreezeRay.app.ico";
+        private const string LOGO_RESOURCE = "FreezeRay.logo.png";
 
         private static readonly Dictionary<int, Icon> _icons = new Dictionary<int, Icon>();
         private static Bitmap _logo;
