@@ -1,105 +1,149 @@
-# Freeze Ray
+<div align="center">
 
-Petit utilitaire de zone de notification, dans l'esprit de **DeskPin**, mais dont
-le but principal est de **garder une fenêtre visible et à la même place quand on
-change de bureau virtuel** (`Ctrl + Win + ←/→`).
+![Freeze Ray banner](documentation/banner.png)
 
-Il s'appuie sur le même mécanisme que le clic droit *« Afficher cette fenêtre sur
-tous les bureaux »* de la vue des tâches, exposé par les interfaces COM du shell
-Windows (`IApplicationViewCollection` / `IVirtualDesktopPinnedApps`).
+**Freeze a window in place: keep it visible at the same spot across every virtual desktop, and on top of everything else.**
 
-## Utilisation : tout passe par l'icône
+**English** · [Français](./documentation/README.fr.md) · [Deutsch](./documentation/README.de.md) · [Español](./documentation/README.es.md) · [Italiano](./documentation/README.it.md) · [日本語](./documentation/README.ja.md) · [한국어](./documentation/README.ko.md) · [Русский](./documentation/README.ru.md) · [中文](./documentation/README.zh.md)
 
-Aucun raccourci clavier global n'est enregistré, donc aucun risque de conflit
-avec une autre application. **Un clic (gauche ou droit) sur l'icône ouvre le
-menu** :
+<p align="center">
+  <a href="https://github.com/Game-K-Hack/freeze-ray/releases/latest"><img src="https://img.shields.io/github/v/release/Game-K-Hack/freeze-ray?label=Download&style=for-the-badge&logo=windows" alt="Download"></a>
+</p>
 
-| Entrée | Effet |
+</div>
+
+## What it does
+
+Windows lets you switch virtual desktops with `Ctrl + Win + ←/→`, but everything
+you were looking at disappears with the desktop you left. Freeze Ray pins a window
+so it **stays visible, at the exact same spot, on every desktop**.
+
+It is a tray utility in the spirit of **DeskPin**, with two independent actions:
+
+- **Keep on screen** — the window follows you across all virtual desktops.
+- **Always on top** — the window stays above the others, the classic DeskPin behaviour.
+
+Both can be applied to the same window.
+
+## Requirements
+
+- **Windows 10** (built and verified on build 19045, 22H2).
+- **.NET Framework 4** — already part of Windows, nothing to install.
+
+> On Windows 11 the undocumented shell interfaces used for virtual desktops have
+> different identifiers. See [Known limitations](#known-limitations).
+
+## Getting started
+
+1. Download `Freeze Ray.exe` from the
+   [latest release](https://github.com/Game-K-Hack/freeze-ray/releases/latest),
+   or [build it yourself](#building-from-source).
+2. Run it. No window opens — only an icon appears in the notification area.
+3. Click the icon → **Keep on screen (all desktops)…**
+4. The cursor turns into the app logo: click the window you want to keep. It gets
+   a small logo on its title bar.
+5. Switch desktops with `Ctrl + Win + ←/→`: the window is still there.
+6. To release it, click the logo on its title bar.
+
+The executable is self-contained: it needs no installer and no `assets` folder.
+
+## Using it
+
+**No global keyboard shortcut is registered**, so nothing can clash with another
+application. Everything goes through the icon, and **a click — left or right —
+opens the menu**:
+
+| Entry | Effect |
 |---|---|
-| **Maintenir à l'écran (tous les bureaux)…** | Passe en désignation, puis la fenêtre cliquée suit tous les bureaux |
-| **Premier plan (toujours visible)…** | Passe en désignation, puis la fenêtre cliquée passe en `TOPMOST` |
-| **Fenêtres verrouillées (n)** | Liste avec l'état de chacune ; cliquer sur une entrée la libère |
-| **Tout libérer** | Remet toutes les fenêtres à leur état normal |
-| **Paramètres…** | Ouvre la fenêtre de réglages |
-| **Quitter** | |
+| **Keep on screen (all desktops)…** | Enters picking mode; the window you click then follows every desktop |
+| **Always on top…** | Enters picking mode; the window you click becomes `TOPMOST` |
+| **Locked windows (n)** | Lists them with their state; clicking one releases it |
+| **Release all** | Puts every window back to normal |
+| **Settings…** | Opens the settings window |
+| **Quit** | |
 
-### Le mode désignation
+### Picking mode
 
-Les deux premières entrées fonctionnent comme DeskPin : après le clic, **le
-curseur prend la forme du logo** de l'application, signalant qu'une fenêtre est
-attendue ; le clic suivant la choisit. Ce clic est consommé par Freeze Ray, il
-n'actionne donc pas ce qui se trouve sous le pointeur.
+After clicking one of the first two entries, **the cursor becomes the app logo**,
+showing that a window is expected; the next click chooses it. That click is
+consumed by Freeze Ray, so it does not press whatever is under the pointer.
 
-- **Échap** ou un **clic droit** annulent la désignation ; cliquer le bureau ou la
-  barre des tâches y renonce également, sans message.
-- Désigner une fenêtre déjà verrouillée la libère (l'action est une bascule).
-- L'infobulle de l'icône indique en permanence l'état en cours.
+- **Esc** or a **right click** cancel. Clicking the desktop or the taskbar also
+  gives up, silently.
+- Picking an already locked window releases it — the action is a toggle.
+- The icon tooltip always shows the current state.
 
-La désignation repose sur un **calque transparent couvrant tous les moniteurs**,
-et non sur `SetCapture`. La capture souris ne redirige en effet les messages que
-si un bouton est maintenu enfoncé ou si le pointeur survole la fenêtre capturante
-— c'est ce qui fait fonctionner l'outil de recherche de Spy++, qu'on utilise en
-*glissant*. Sans bouton pressé, chaque fenêtre survolée continuait d'imposer son
-propre curseur et le logo n'apparaissait jamais. Avec le calque, le pointeur est
-en permanence au-dessus de notre fenêtre : elle impose son curseur et reçoit le
-clic.
+### The title-bar marker
 
-### La marque sur la barre de titre
+A locked window gets **the logo on its title bar**, just left of the system
+buttons. **Clicking it releases the window** and removes the marker.
 
-Une fenêtre verrouillée reçoit **le logo sur sa barre de titre**, à gauche des
-boutons système. **Cliquer dessus libère la fenêtre** et retire la marque.
+The marker follows its window when moved or resized, disappears when the window
+is minimised, and sits immediately in front of it in the z-order — so another
+window covering the target covers the marker too. A window kept on all desktops
+takes its marker along from one desktop to the next.
 
-La marque suit sa fenêtre : déplacement, redimensionnement, réduction (elle
-s'efface), et elle se place juste devant elle dans l'ordre de profondeur — une
-autre fenêtre qui recouvre la cible recouvre donc aussi la marque. Une fenêtre
-maintenue sur tous les bureaux emmène sa marque avec elle d'un bureau à l'autre.
+Windows with a custom frame (browsers, UWP apps…) do not always publish their
+title-bar geometry; the marker then goes to the top-right corner of the visible
+frame.
 
-Techniquement c'est une fenêtre à transparence par pixel (`WS_EX_LAYERED` +
-`UpdateLayeredWindow`), ce qui préserve l'anticrénelage du logo sur n'importe quel
-fond ; elle n'accepte jamais le focus, cliquer dessus ne désactive donc pas la
-fenêtre visée, et les zones transparentes laissent passer le clic vers la barre de
-titre en dessous.
+## Settings
 
-Les fenêtres à cadre personnalisé (navigateurs, applications UWP…) ne publient pas
-toujours la géométrie de leur barre de titre ; la marque se place alors dans le
-coin supérieur droit du cadre visible.
+Reachable through **Settings…** in the menu. The window shows the logo, the name
+and the **version number**, then:
 
-**Pour déplacer la marque**, un seul réglage dans [WindowMarker.cs](WindowMarker.cs) :
-`BUTTON_GAP` (l'écart avec le premier bouton système, 4 px). Plus il est petit,
-plus la marque va à droite ; en dessous de zéro elle empiète sur le bouton
-Réduire.
+| Setting | Detail |
+|---|---|
+| **Start with Windows** | Writes to `HKCU\...\CurrentVersion\Run`. The registry stays the single source of truth: the checkbox reads the real state back and realigns if the write fails |
+| **Release everything on exit** | Avoids leaving windows stuck |
+| **Show notifications** | Hides informational balloons only — **errors are always reported**, because silencing them would make a broken action look like nothing happened |
+| **Language** | Applied immediately, including the menu, the tooltip and the notifications |
+| **GitHub repository** | Source used to check for updates, in `owner/repository` form |
 
-La largeur du bloc des boutons ne peut pas être lue directement : la métrique
-système `SM_CXSIZE` vaut 36 px là où Windows 10 dessine des boutons de 46 px
-(mesuré au pixel : glyphes centrés tous les 46 px). Elle suit en revanche
-correctement la mise à l'échelle de l'affichage, d'où le rapport 46/36 appliqué
-dans le code.
+Settings live in `%APPDATA%\Freeze Ray\settings.ini`, a plain `key=value` file you
+can read and fix by hand. On first run the language follows Windows (English
+unless the system is in French).
 
-## Compilation
+The texts live in [Strings.cs](Strings.cs) as one table per language rather than
+resource files, so the project stays buildable with the compiler shipped with
+Windows. Adding a language means adding a table and one entry in the drop-down.
 
-Aucun SDK à installer : le compilateur C# du .NET Framework 4 déjà présent dans
-Windows suffit.
+### Updates
+
+**Check for updates** queries the public GitHub releases API for the configured
+repository, compares version numbers and offers to open the download page.
+
+**The application deliberately does not update itself.** Replacing a running
+executable requires a helper process, and doing it without a signature or an
+integrity check would be an attack vector — not a worthwhile trade for a utility
+this size.
+
+## Building from source
+
+No SDK to install: the C# compiler shipped with .NET Framework 4, already present
+in Windows, is enough.
 
 ```bat
 build.bat
 ```
 
-Produit `Freeze Ray.exe` à côté des sources. Le logo est **embarqué dans
-l'exécutable** : `Freeze Ray.exe` fonctionne seul, sans le dossier `assets`.
+This produces `Freeze Ray.exe` next to the sources. The logo is **embedded in the
+executable**, so the binary works on its own.
 
-## Le logo
+## Replacing the logo
 
-| Fichier | Rôle |
+| File | Role |
 |---|---|
-| `assets/icon.svg`, `assets/icon.png` | Sources fournies ; le PNG (512×512, transparent) sert de logo à l'exécution |
-| `assets/app.ico` | **Généré** par `tools/MakeIcon.cs` — icône du fichier et de la fenêtre |
+| `assets/icon.png` | Source logo (512×512, transparent) — tray icon, picking cursor and title-bar marker |
+| `assets/app.ico` | **Generated** by `tools/MakeIcon.cs` — file icon and window icon |
+| `assets/Freeze Ray.png` | Illustration used only in the settings header |
 
-`icon.ico` ne contenait qu'une seule image 256×256 : Windows aurait dû la réduire
-lui-même pour la zone de notification (16×16) et la barre de titre, avec un rendu
-flou. `tools/MakeIcon.cs` pré-calcule donc les neuf tailles utiles (16 → 256) à
-partir du PNG, avec un rééchantillonnage de qualité.
+`icon.ico` originally held a single 256×256 image, which Windows would have had to
+shrink itself for the notification area (16×16) and the title bar, with a blurry
+result. `tools/MakeIcon.cs` therefore precomputes the nine useful sizes (16 → 256)
+from the PNG with high-quality resampling.
 
-**Si vous changez de logo**, remplacez `assets/icon.png` puis régénérez :
+To change the logo, replace `assets/icon.png` then regenerate:
 
 ```bat
 %WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /out:MakeIcon.exe /r:System.Drawing.dll tools\MakeIcon.cs
@@ -107,94 +151,77 @@ MakeIcon.exe
 build.bat
 ```
 
-## Marche à suivre
+## How it works
 
-1. Lancer `Freeze Ray.exe` (il n'affiche pas de fenêtre, seulement l'icône).
-2. Cliquer sur l'icône → *Maintenir à l'écran (tous les bureaux)…*
-3. Le curseur devient le logo : cliquer sur la fenêtre à conserver. Elle reçoit le
-   logo sur sa barre de titre.
-4. Changer de bureau avec `Ctrl + Win + ←/→` : la fenêtre reste affichée, au même
-   endroit.
-5. Pour la libérer : cliquer le logo sur sa barre de titre.
+### Virtual desktops
 
-## Le veto des applications sur le premier plan
+Keeping a window on every desktop uses the very mechanism behind the *“Show this
+window on all desktops”* right-click entry of Task View, exposed by the
+undocumented shell COM interfaces `IApplicationViewCollection` and
+`IVirtualDesktopPinnedApps` — see [VirtualDesktop.cs](VirtualDesktop.cs).
 
-Certaines applications **refusent** qu'on modifie leur ordre de profondeur : elles
-interceptent `WM_WINDOWPOSCHANGING` et neutralisent le changement au passage.
-`SetWindowPos` renvoie alors un **succès sans avoir rien fait** — c'est le cas de
-VLC pendant la lecture d'une vidéo (constaté : drapeau toujours absent, y compris
-une seconde après l'appel).
+### Picking with an overlay, not mouse capture
 
-D'où deux précautions dans le code :
+Picking relies on a **transparent layer covering every monitor**, not on
+`SetCapture`. Mouse capture only redirects messages while a button is held down
+or while the pointer is over the capturing window — which is why the Spy++ finder
+tool is used by *dragging*. With no button pressed, every hovered window kept
+imposing its own cursor and the logo never appeared. With the overlay the pointer
+is permanently over our own window, so it imposes its cursor and receives the
+click. See [WindowPicker.cs](WindowPicker.cs).
 
-- l'indicateur `SWP_NOSENDCHANGING` supprime cette notification, ce qui prive
-  l'application de son droit de veto ;
-- l'état est **relu après coup** au lieu de faire confiance au code de retour, de
-  sorte qu'un échec réel soit signalé plutôt que passé sous silence.
+### The marker
 
-## Les paramètres
+The marker is a per-pixel transparent window (`WS_EX_LAYERED` +
+`UpdateLayeredWindow`), which preserves the antialiasing of the logo over any
+background. It never takes focus, so clicking it does not deactivate the target
+window, and its transparent areas let clicks through to the title bar underneath.
 
-Accessibles par *Paramètres…* dans le menu. La fenêtre affiche le logo, le nom et
-le **numéro de version** (lu dans l'assembly, donc toujours cohérent avec le
-binaire), puis :
+**To move the marker**, one setting in [WindowMarker.cs](WindowMarker.cs):
+`BUTTON_GAP`, the gap to the first system button (4 px). The smaller it is, the
+further right the marker sits; below zero it overlaps the Minimise button.
 
-| Réglage | Détail |
-|---|---|
-| **Démarrer avec Windows** | Écrit dans `HKCU\...\CurrentVersion\Run`. Le registre en reste la seule source de vérité : la case relit l'état réel, et se réaligne si l'écriture échoue |
-| **Tout libérer en quittant** | Évite de laisser des fenêtres bloquées |
-| **Afficher les notifications** | Ne masque que les bulles d'information ; **les erreurs restent toujours signalées**, car les taire redonnerait l'impression d'une fonction qui ne marche pas |
-| **Langue** | Français / anglais, appliqué immédiatement — menu, infobulle et notifications compris |
-| **Dépôt GitHub** | Source de la recherche de mise à jour, au format `proprietaire/depot` |
+The width of the button block cannot be read directly: the system metric
+`SM_CXSIZE` reports 36 px where Windows 10 draws 46 px buttons (measured to the
+pixel: glyphs centred every 46 px). It does follow display scaling correctly,
+hence the 46/36 ratio used in the code.
 
-Les réglages sont enregistrés dans `%APPDATA%\Freeze Ray\settings.ini`, un simple
-fichier `clé=valeur` qui se lit et se corrige à la main. Au premier lancement, la
-langue suit celle de Windows (anglais si ce n'est pas le français).
+### Applications vetoing “always on top”
 
-Les textes vivent dans [Strings.cs](Strings.cs), une table par langue plutôt que
-des fichiers de ressources : le projet reste compilable avec le seul compilateur
-fourni par Windows, sans génération d'assemblys satellites. Ajouter une langue
-revient à ajouter une table et une entrée dans la liste déroulante.
+Some applications **refuse** to have their z-order changed: they intercept
+`WM_WINDOWPOSCHANGING` and neutralise the change on the way through.
+`SetWindowPos` then returns **success without doing anything** — VLC behaves this
+way while playing a video (measured: the flag was still absent a full second
+after the call).
 
-### La mise à jour
+Hence two precautions in the code:
 
-*Rechercher les mises à jour* interroge l'API publique des versions de GitHub sur
-le dépôt indiqué, compare les numéros et propose d'ouvrir la page de
-téléchargement.
+- the `SWP_NOSENDCHANGING` flag suppresses that notification, denying the
+  application its veto;
+- the state is **read back afterwards** instead of trusting the return value, so a
+  real failure is reported rather than silently swallowed.
 
-**L'application ne se met pas à jour toute seule, volontairement.** Remplacer un
-exécutable pendant qu'il tourne demande un programme relais, et le faire sans
-signature ni vérification d'intégrité serait un vecteur d'attaque — le gain ne
-vaut pas ce risque pour un utilitaire de cette taille.
+### Notifications
 
-Sans dépôt renseigné, le bouton l'indique simplement. Le champ accepte n'importe
-quel dépôt : rien n'est codé en dur.
+Informational balloons show **the app logo** instead of the blue system “i”.
+WinForms cannot do this: `NotifyIcon.ShowBalloonTip` only accepts system icons and
+rejects any value outside its enumeration. The shell is therefore addressed
+directly (`Shell_NotifyIcon` with `NIIF_USER`), reusing the internal identity of
+the entry WinForms created — see [Notifications.cs](Notifications.cs). Should that
+internal detail ever change, the code falls back to the standard balloon.
 
-## Les notifications
+The notification header shows `Freeze Ray.exe`: Windows puts the executable file
+name there. Declaring an `AppUserModelID` changes nothing (verified); only
+installing a Start-menu shortcut would allow a name without the extension.
 
-Les bulles informatives affichent **le logo de l'application** au lieu du « i »
-bleu du système. WinForms ne le permet pas : `NotifyIcon.ShowBalloonTip` n'accepte
-que les icônes système et rejette toute valeur hors de son énumération. On
-s'adresse donc directement au shell (`Shell_NotifyIcon` avec `NIIF_USER`), en
-réutilisant l'identification interne de l'entrée créée par WinForms
-— voir [Notifications.cs](Notifications.cs). Si cette mécanique interne venait à
-changer, le code retombe sur la bulle standard.
+## Known limitations
 
-Les avertissements et les erreurs gardent volontairement les icônes système : à
-cet endroit, elles signalent bien mieux un problème.
-
-L'en-tête de la notification affiche `Freeze Ray.exe` : Windows y met le nom du
-fichier exécutable. Déclarer un `AppUserModelID` n'y change rien (vérifié) ; seule
-l'installation d'un raccourci dans le menu Démarrer permettrait d'afficher un nom
-sans extension.
-
-## Limites connues
-
-- Une fenêtre appartenant à un processus **élevé** (lancé en administrateur) ne
-  peut être épinglée que si Freeze Ray est lui aussi lancé en administrateur.
-- Les interfaces COM utilisées ne sont pas documentées par Microsoft et leurs
-  identifiants changent selon les versions de Windows. Les GUID retenus ici sont
-  ceux de **Windows 10 1803 → 22H2** ; vérifié sur la build **19045**. Sur
-  Windows 11, `IVirtualDesktopPinnedApps` a un autre IID et
-  [VirtualDesktop.cs](VirtualDesktop.cs) devra être ajusté.
-- L'épinglage porte sur la fenêtre, pas sur l'application : rouvrir la fenêtre
-  après l'avoir fermée demande de la ré-épingler.
+- A window owned by an **elevated** process can only be changed if Freeze Ray is
+  elevated too.
+- The COM interfaces used for virtual desktops are undocumented and their
+  identifiers change between Windows versions. The GUIDs used here are those of
+  **Windows 10 1803 → 22H2**, verified on build **19045**. On Windows 11,
+  `IVirtualDesktopPinnedApps` has a different IID and
+  [VirtualDesktop.cs](VirtualDesktop.cs) must be adjusted.
+- Pinning applies to the window, not to the application: reopening a window after
+  closing it requires pinning it again.
