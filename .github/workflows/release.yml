@@ -148,15 +148,28 @@ jobs:
           $table = "### Checksum`n`n| Filename | md5 | sha256 |`n| --- | --- | --- |`n" +
                    ($rows -join "`n")
 
-          $body = gh release view $tag --json body --jq .body
+          # PowerShell découpe la sortie d'une commande externe en tableau de
+          # lignes dès qu'elle est multiligne. Récupérer la description avec
+          # « --jq .body » donnait donc un tableau, dont la réécriture collait
+          # toutes les lignes bout à bout : la description perdait ses retours à
+          # la ligne. On passe par le JSON, qui tient sur une ligne et redonne
+          # une vraie chaîne, retours à la ligne compris.
+          $raw = @(gh release view $tag --json body) -join "`n"
+          $body = ($raw | ConvertFrom-Json).body
           if ($null -eq $body) { $body = '' }
 
-          # Rejouer le workflow doit remplacer le tableau, pas en empiler un second.
+          # Rejouer le workflow doit remplacer le tableau, pas en empiler un
+          # second. Sur un tableau, IndexOf cherchait un élément entier et
+          # renvoyait toujours -1 : la protection ne jouait pas.
           $marker = $body.IndexOf('### Checksum')
           if ($marker -ge 0) { $body = $body.Substring(0, $marker) }
 
           $notes = ($body.TrimEnd() + "`n`n" + $table).TrimStart()
-          Set-Content notes.md -Value $notes -Encoding utf8 -NoNewline
+
+          # WriteAllText plutôt que Set-Content : pas de BOM, et aucune surprise
+          # de séparateur selon l'édition de PowerShell.
+          $notesPath = Join-Path (Get-Location) 'notes.md'
+          [IO.File]::WriteAllText($notesPath, $notes, (New-Object Text.UTF8Encoding($false)))
           Write-Host $table
 
-          gh release edit $tag --notes-file notes.md
+          gh release edit $tag --notes-file $notesPath
