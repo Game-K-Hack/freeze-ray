@@ -20,8 +20,7 @@ menu** :
 | **Premier plan (toujours visible)…** | Passe en désignation, puis la fenêtre cliquée passe en `TOPMOST` |
 | **Fenêtres verrouillées (n)** | Liste avec l'état de chacune ; cliquer sur une entrée la libère |
 | **Tout libérer** | Remet toutes les fenêtres à leur état normal |
-| **Démarrer avec Windows** | Entrée dans `HKCU\...\CurrentVersion\Run` |
-| **Tout libérer en quittant** | Activé par défaut, évite de laisser des fenêtres bloquées |
+| **Paramètres…** | Ouvre la fenêtre de réglages |
 | **Quitter** | |
 
 ### Le mode désignation
@@ -132,6 +131,43 @@ D'où deux précautions dans le code :
   l'application de son droit de veto ;
 - l'état est **relu après coup** au lieu de faire confiance au code de retour, de
   sorte qu'un échec réel soit signalé plutôt que passé sous silence.
+
+## Les paramètres
+
+Accessibles par *Paramètres…* dans le menu. La fenêtre affiche le logo, le nom et
+le **numéro de version** (lu dans l'assembly, donc toujours cohérent avec le
+binaire), puis :
+
+| Réglage | Détail |
+|---|---|
+| **Démarrer avec Windows** | Écrit dans `HKCU\...\CurrentVersion\Run`. Le registre en reste la seule source de vérité : la case relit l'état réel, et se réaligne si l'écriture échoue |
+| **Tout libérer en quittant** | Évite de laisser des fenêtres bloquées |
+| **Afficher les notifications** | Ne masque que les bulles d'information ; **les erreurs restent toujours signalées**, car les taire redonnerait l'impression d'une fonction qui ne marche pas |
+| **Langue** | Français / anglais, appliqué immédiatement — menu, infobulle et notifications compris |
+| **Dépôt GitHub** | Source de la recherche de mise à jour, au format `proprietaire/depot` |
+
+Les réglages sont enregistrés dans `%APPDATA%\Freeze Ray\settings.ini`, un simple
+fichier `clé=valeur` qui se lit et se corrige à la main. Au premier lancement, la
+langue suit celle de Windows (anglais si ce n'est pas le français).
+
+Les textes vivent dans [Strings.cs](Strings.cs), une table par langue plutôt que
+des fichiers de ressources : le projet reste compilable avec le seul compilateur
+fourni par Windows, sans génération d'assemblys satellites. Ajouter une langue
+revient à ajouter une table et une entrée dans la liste déroulante.
+
+### La mise à jour
+
+*Rechercher les mises à jour* interroge l'API publique des versions de GitHub sur
+le dépôt indiqué, compare les numéros et propose d'ouvrir la page de
+téléchargement.
+
+**L'application ne se met pas à jour toute seule, volontairement.** Remplacer un
+exécutable pendant qu'il tourne demande un programme relais, et le faire sans
+signature ni vérification d'intégrité serait un vecteur d'attaque — le gain ne
+vaut pas ce risque pour un utilitaire de cette taille.
+
+Sans dépôt renseigné, le bouton l'indique simplement. Le champ accepte n'importe
+quel dépôt : rien n'est codé en dur.
 
 ## Les notifications
 

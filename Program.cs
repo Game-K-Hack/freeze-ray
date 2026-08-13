@@ -19,8 +19,8 @@ namespace FreezeRay
             {
                 if (!createdNew)
                 {
-                    MessageBox.Show("Freeze Ray est déjà lancé (icône dans la zone de notification).",
-                        "Freeze Ray", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(Strings.T("app.alreadyRunning"), Strings.AppName,
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
 
@@ -52,14 +52,15 @@ namespace FreezeRay
         /// <summary>Un tick sur dix vérifie l'état réel, qui coûte des appels COM.</summary>
         private const int SYNC_EVERY = 10;
 
+        private readonly Settings _settings;
         private readonly NotifyIcon _tray;
         private readonly ContextMenuStrip _menu;
         private readonly ToolStripMenuItem _pickAllDesktops;
         private readonly ToolStripMenuItem _pickTopMost;
         private readonly ToolStripMenuItem _managedRoot;
         private readonly ToolStripMenuItem _releaseAll;
-        private readonly ToolStripMenuItem _autoStart;
-        private readonly ToolStripMenuItem _cleanOnExit;
+        private readonly ToolStripMenuItem _settingsItem;
+        private readonly ToolStripMenuItem _quit;
         private readonly WindowPicker _picker;
         private readonly Timer _pickStarter;
         private readonly Timer _tracker;
@@ -71,10 +72,15 @@ namespace FreezeRay
 
         private PickAction _pendingAction;
         private int _tick;
+        private SettingsForm _settingsForm;
 
         public TrayContext()
         {
             MigrateLegacyAutoStart();
+
+            _settings = Settings.Load();
+            Strings.Current = _settings.Language;
+
             _ownProcessId = Process.GetCurrentProcess().Id;
             _helper = new ForegroundHelper();
 
@@ -100,33 +106,23 @@ namespace FreezeRay
             _menu = new ContextMenuStrip();
             _menu.Opening += delegate { RefreshMenu(); };
 
-            _pickAllDesktops = new ToolStripMenuItem("Maintenir à l'écran (tous les bureaux)…");
-            _pickAllDesktops.ToolTipText =
-                "Cliquez ici, puis désignez la fenêtre à conserver lors des changements de bureau.";
+            _pickAllDesktops = new ToolStripMenuItem();
             _pickAllDesktops.Click += delegate { BeginPick(PickAction.AllDesktops); };
 
-            _pickTopMost = new ToolStripMenuItem("Premier plan (toujours visible)…");
-            _pickTopMost.ToolTipText =
-                "Cliquez ici, puis désignez la fenêtre à garder au-dessus des autres.";
+            _pickTopMost = new ToolStripMenuItem();
             _pickTopMost.Click += delegate { BeginPick(PickAction.TopMost); };
 
-            _managedRoot = new ToolStripMenuItem("Aucune fenêtre verrouillée");
+            _managedRoot = new ToolStripMenuItem();
             _managedRoot.Enabled = false;
 
-            _releaseAll = new ToolStripMenuItem("Tout libérer");
+            _releaseAll = new ToolStripMenuItem();
             _releaseAll.Click += delegate { ReleaseAll(true); };
 
-            _autoStart = new ToolStripMenuItem("Démarrer avec Windows");
-            _autoStart.CheckOnClick = true;
-            _autoStart.Checked = IsAutoStartEnabled();
-            _autoStart.Click += delegate { SetAutoStart(_autoStart.Checked); };
+            _settingsItem = new ToolStripMenuItem();
+            _settingsItem.Click += delegate { ShowSettings(); };
 
-            _cleanOnExit = new ToolStripMenuItem("Tout libérer en quittant");
-            _cleanOnExit.CheckOnClick = true;
-            _cleanOnExit.Checked = true;
-
-            ToolStripMenuItem quit = new ToolStripMenuItem("Quitter");
-            quit.Click += delegate { ExitThread(); };
+            _quit = new ToolStripMenuItem();
+            _quit.Click += delegate { ExitThread(); };
 
             _menu.Items.Add(_pickAllDesktops);
             _menu.Items.Add(_pickTopMost);
@@ -134,25 +130,40 @@ namespace FreezeRay
             _menu.Items.Add(_managedRoot);
             _menu.Items.Add(_releaseAll);
             _menu.Items.Add(new ToolStripSeparator());
-            _menu.Items.Add(_autoStart);
-            _menu.Items.Add(_cleanOnExit);
-            _menu.Items.Add(new ToolStripSeparator());
-            _menu.Items.Add(quit);
+            _menu.Items.Add(_settingsItem);
+            _menu.Items.Add(_quit);
 
             _tray = new NotifyIcon();
             _tray.Icon = Assets.TrayIcon;
-            _tray.Text = "Freeze Ray";
             _tray.Visible = true;
             _tray.ContextMenuStrip = _menu;
             _tray.MouseClick += OnTrayClick;
 
+            ApplyLanguage();
+
             if (!VirtualDesktop.Available)
             {
-                Notify("Bureaux virtuels indisponibles",
-                    "Impossible de joindre le shell Windows : " +
-                    (VirtualDesktop.InitError ?? "raison inconnue"),
+                Notify(Strings.T("notif.vd.title"),
+                    Strings.T("notif.vd.text",
+                        VirtualDesktop.InitError ?? Strings.T("notif.vd.unknown")),
                     ToolTipIcon.Error);
             }
+        }
+
+        // --- Langue ---
+
+        /// <summary>Réapplique tous les libellés : appelé au démarrage et à chaque changement de langue.</summary>
+        private void ApplyLanguage()
+        {
+            _pickAllDesktops.Text = Strings.T("menu.allDesktops");
+            _pickAllDesktops.ToolTipText = Strings.T("menu.allDesktops.tip");
+            _pickTopMost.Text = Strings.T("menu.topMost");
+            _pickTopMost.ToolTipText = Strings.T("menu.topMost.tip");
+            _releaseAll.Text = Strings.T("menu.releaseAll");
+            _settingsItem.Text = Strings.T("menu.settings");
+            _quit.Text = Strings.T("menu.quit");
+            _managedRoot.Text = Strings.T("menu.noLocked");
+            UpdateTrayState();
         }
 
         // --- Interaction ---
@@ -188,12 +199,31 @@ namespace FreezeRay
             _menu.Show(Cursor.Position);
         }
 
+        private void ShowSettings()
+        {
+            // Une seule fenêtre à la fois : un second clic ramène la première.
+            if (_settingsForm != null && !_settingsForm.IsDisposed)
+            {
+                if (_settingsForm.WindowState == FormWindowState.Minimized)
+                    _settingsForm.WindowState = FormWindowState.Normal;
+                _settingsForm.Activate();
+                return;
+            }
+
+            _settingsForm = new SettingsForm(_settings, IsAutoStartEnabled, SetAutoStart,
+                ApplyLanguage);
+            _settingsForm.FormClosed += delegate { _settingsForm = null; };
+            _settingsForm.Show();
+            _settingsForm.Activate();
+        }
+
         private void BeginPick(PickAction action)
         {
             if (action == PickAction.AllDesktops && !VirtualDesktop.Available)
             {
-                Notify("Bureaux virtuels indisponibles",
-                    VirtualDesktop.InitError ?? "Le shell n'a pas répondu.", ToolTipIcon.Error);
+                Notify(Strings.T("notif.vd.title"),
+                    VirtualDesktop.InitError ?? Strings.T("notif.vd.noAnswer"),
+                    ToolTipIcon.Error);
                 return;
             }
             _pendingAction = action;
@@ -216,8 +246,7 @@ namespace FreezeRay
             // que la fonction ne marche plus.
             if (!IsUsableTarget(hwnd))
             {
-                Notify("Fenêtre inutilisable",
-                    "Freeze Ray n'a pas pu identifier de fenêtre à cet endroit.",
+                Notify(Strings.T("notif.unusable.title"), Strings.T("notif.unusable.text"),
                     ToolTipIcon.Warning);
                 return;
             }
@@ -281,16 +310,13 @@ namespace FreezeRay
 
             if (!ok)
             {
-                Notify("Échec",
-                    "Impossible de modifier « " + title + " ».\n" +
-                    "Les fenêtres d'applications lancées en administrateur exigent " +
-                    "que Freeze Ray le soit aussi.",
+                Notify(Strings.T("notif.failed.title"), Strings.T("notif.failed.pin", title),
                     ToolTipIcon.Error);
                 return;
             }
 
             SyncMarker(hwnd);
-            Notify(wasPinned ? "Ne suit plus les bureaux" : "Maintenue sur tous les bureaux",
+            Notify(Strings.T(wasPinned ? "notif.desktops.off" : "notif.desktops.on"),
                 title, ToolTipIcon.Info);
         }
 
@@ -305,16 +331,13 @@ namespace FreezeRay
             // on relit l'état plutôt que de croire le code de retour.
             if (!ok || Native.IsTopMost(hwnd) == wasTop)
             {
-                Notify("Échec",
-                    "Impossible de modifier « " + title + " ».\n" +
-                    "Une application lancée en administrateur exige que Freeze Ray " +
-                    "le soit aussi.",
+                Notify(Strings.T("notif.failed.title"), Strings.T("notif.failed.topMost", title),
                     ToolTipIcon.Error);
                 return;
             }
 
             SyncMarker(hwnd);
-            Notify(wasTop ? "Premier plan désactivé" : "Toujours au premier plan",
+            Notify(Strings.T(wasTop ? "notif.topMost.off" : "notif.topMost.on"),
                 title, ToolTipIcon.Info);
         }
 
@@ -348,7 +371,7 @@ namespace FreezeRay
             foreach (WindowMarker marker in _markers.ToArray()) Release(marker.Target);
             UpdateTrayState();
             if (notify)
-                Notify("Freeze Ray", count + " fenêtre(s) libérée(s).", ToolTipIcon.Info);
+                Notify(Strings.AppName, Strings.T("notif.released.count", count), ToolTipIcon.Info);
         }
 
         // --- Marques posées sur les barres de titre ---
@@ -412,7 +435,7 @@ namespace FreezeRay
             string title = Native.GetTitle(target);
             Release(target);
             UpdateTrayState();
-            Notify("Fenêtre libérée", title, ToolTipIcon.Info);
+            Notify(Strings.T("notif.released.title"), title, ToolTipIcon.Info);
         }
 
         private void OnTrack()
@@ -436,11 +459,11 @@ namespace FreezeRay
         {
             string text;
             if (_picker.IsActive)
-                text = "Freeze Ray — désignez une fenêtre (Échap pour annuler)";
+                text = Strings.T("tray.picking");
             else if (_markers.Count > 0)
-                text = "Freeze Ray — " + _markers.Count + " fenêtre(s) verrouillée(s)";
+                text = Strings.T("tray.locked", _markers.Count);
             else
-                text = "Freeze Ray";
+                text = Strings.AppName;
 
             // NotifyIcon.Text est limité à 63 caractères.
             _tray.Text = text.Length > 63 ? text.Substring(0, 63) : text;
@@ -453,9 +476,9 @@ namespace FreezeRay
 
         private static string DescribeState(bool pinned, bool topMost)
         {
-            if (pinned && topMost) return "tous les bureaux + premier plan";
-            if (pinned) return "tous les bureaux";
-            return "premier plan";
+            if (pinned && topMost) return Strings.T("state.both");
+            if (pinned) return Strings.T("state.desktops");
+            return Strings.T("state.topMost");
         }
 
         private void RefreshMenu()
@@ -471,8 +494,8 @@ namespace FreezeRay
             _managedRoot.Enabled = _markers.Count > 0;
             _releaseAll.Enabled = _markers.Count > 0;
             _managedRoot.Text = _markers.Count > 0
-                ? "Fenêtres verrouillées (" + _markers.Count + ")"
-                : "Aucune fenêtre verrouillée";
+                ? Strings.T("menu.locked", _markers.Count)
+                : Strings.T("menu.noLocked");
 
             foreach (WindowMarker marker in _markers)
             {
@@ -480,7 +503,7 @@ namespace FreezeRay
                 string state = DescribeState(IsPinned(captured), Native.IsTopMost(captured));
                 ToolStripMenuItem item = new ToolStripMenuItem(
                     Ellipsize(Native.GetTitle(captured), 55) + "   [" + state + "]");
-                item.ToolTipText = "Cliquer pour libérer cette fenêtre.";
+                item.ToolTipText = Strings.T("menu.releaseTip");
                 item.Click += delegate
                 {
                     Release(captured);
@@ -492,8 +515,14 @@ namespace FreezeRay
             UpdateTrayState();
         }
 
+        /// <summary>
+        /// Les erreurs passent toujours : les taire redonnerait l'impression
+        /// d'une fonction qui ne marche pas. Le réglage ne concerne donc que les
+        /// notifications d'information.
+        /// </summary>
         private void Notify(string title, string text, ToolTipIcon icon)
         {
+            if (!_settings.ShowNotifications && icon == ToolTipIcon.Info) return;
             Notifications.Show(_tray, title, text, icon, 2500);
         }
 
@@ -516,36 +545,45 @@ namespace FreezeRay
             }
             catch (Exception)
             {
-                // Le démarrage automatique reste réglable depuis le menu.
+                // Le démarrage automatique reste réglable depuis les paramètres.
             }
         }
 
         private static bool IsAutoStartEnabled()
         {
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RUN_KEY, false))
+            try
             {
-                return key != null && key.GetValue(RUN_VALUE) != null;
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RUN_KEY, false))
+                {
+                    return key != null && key.GetValue(RUN_VALUE) != null;
+                }
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
 
-        private void SetAutoStart(bool enabled)
+        /// <summary>Renvoie faux si le registre a refusé, pour que l'interface se réaligne.</summary>
+        private bool SetAutoStart(bool enabled)
         {
             try
             {
                 using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RUN_KEY, true))
                 {
-                    if (key == null) return;
+                    if (key == null) return false;
                     if (enabled)
                         key.SetValue(RUN_VALUE, "\"" + Application.ExecutablePath + "\"");
                     else
                         key.DeleteValue(RUN_VALUE, false);
                 }
+                return true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible de modifier le démarrage automatique : " + ex.Message,
-                    "Freeze Ray", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                _autoStart.Checked = IsAutoStartEnabled();
+                MessageBox.Show(Strings.T("notif.autostart.error", ex.Message),
+                    Strings.AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
             }
         }
 
@@ -557,7 +595,9 @@ namespace FreezeRay
                 _tracker.Stop();
                 _picker.Dispose();
 
-                if (_cleanOnExit != null && _cleanOnExit.Checked) ReleaseAll(false);
+                if (_settingsForm != null && !_settingsForm.IsDisposed) _settingsForm.Close();
+                if (_settings != null && _settings.ReleaseAllOnExit) ReleaseAll(false);
+
                 foreach (WindowMarker marker in _markers.ToArray()) marker.Dispose();
                 _markers.Clear();
 
