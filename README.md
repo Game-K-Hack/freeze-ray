@@ -141,21 +141,15 @@ executable**, so the binary works on its own.
 | File | Role |
 |---|---|
 | `assets/icon.png` | Source logo (512×512, transparent) — tray icon, picking cursor and title-bar marker |
-| `assets/app.ico` | **Generated** by `tools/MakeIcon.cs` — file icon and window icon |
+| `assets/app.ico` | Multi-size icon (16 → 256) — file icon and window icon |
 | `assets/Freeze Ray.png` | Illustration used only in the settings header |
 
-`icon.ico` originally held a single 256×256 image, which Windows would have had to
-shrink itself for the notification area (16×16) and the title bar, with a blurry
-result. `tools/MakeIcon.cs` therefore precomputes the nine useful sizes (16 → 256)
-from the PNG with high-quality resampling.
+To change the logo, replace `assets/icon.png`, build a matching `assets/app.ico`
+holding the nine usual sizes (16, 20, 24, 32, 40, 48, 64, 128, 256) with any icon
+editor, then run `build.bat`.
 
-To change the logo, replace `assets/icon.png` then regenerate:
-
-```bat
-%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /out:MakeIcon.exe /r:System.Drawing.dll tools\MakeIcon.cs
-MakeIcon.exe
-build.bat
-```
+A single 256×256 image is not enough: Windows would have to shrink it itself for
+the notification area (16×16) and the title bar, with a blurry result.
 
 ## How it works
 

@@ -8,7 +8,7 @@ if not exist "%CSC%" (
 )
 
 if not exist "%~dp0assets\app.ico" (
-  echo assets\app.ico manquant : regenerez-le avec tools\MakeIcon.cs.
+  echo assets\app.ico manquant : voir la section "Remplacer le logo" du README.
   exit /b 1
 )
 

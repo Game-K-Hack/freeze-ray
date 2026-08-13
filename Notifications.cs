@@ -22,10 +22,6 @@ namespace FreezeRay
     {
         private const int NIM_MODIFY = 0x00000001;
         private const int NIF_INFO = 0x00000010;
-
-        private const int NIIF_NONE = 0x00000000;
-        private const int NIIF_WARNING = 0x00000002;
-        private const int NIIF_ERROR = 0x00000003;
         private const int NIIF_USER = 0x00000004;
         private const int NIIF_LARGE_ICON = 0x00000020;
 

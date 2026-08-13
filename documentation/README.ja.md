@@ -130,21 +130,15 @@ build.bat
 | ファイル | 役割 |
 |---|---|
 | `assets/icon.png` | 元のロゴ（512×512、透過）— 通知領域アイコン、選択カーソル、タイトルバーの目印 |
-| `assets/app.ico` | `tools/MakeIcon.cs` が**生成** — ファイルおよびウィンドウのアイコン |
+| `assets/app.ico` | 複数サイズのアイコン（16 → 256）— ファイルおよびウィンドウのアイコン |
 | `assets/Freeze Ray.png` | 設定画面のヘッダー専用の挿絵 |
 
-`icon.ico` には元々 256×256 の画像が 1 つしか入っておらず、通知領域（16×16）や
-タイトルバー向けに Windows 側が縮小することになり、ぼやけた仕上がりになっていま
-した。そこで `tools/MakeIcon.cs` が PNG から必要な 9 サイズ（16 → 256）を高品質な
-再サンプリングで事前生成します。
+ロゴを変えるには `assets/icon.png` を置き換え、9 つの標準サイズ（16、20、24、32、40、
+48、64、128、256）を含む `assets/app.ico` を任意のアイコン編集ソフトで作成してから、
+`build.bat` を実行します。
 
-ロゴを変えるには `assets/icon.png` を置き換えて再生成します。
-
-```bat
-%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /out:MakeIcon.exe /r:System.Drawing.dll tools\MakeIcon.cs
-MakeIcon.exe
-build.bat
-```
+256×256 の画像 1 つでは足りません。通知領域（16×16）やタイトルバー向けに Windows 側が
+縮小することになり、ぼやけた仕上がりになります。
 
 ## 仕組み
 

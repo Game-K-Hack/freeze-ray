@@ -120,20 +120,14 @@ build.bat
 | 文件 | 用途 |
 |---|---|
 | `assets/icon.png` | 源图标（512×512，透明）—— 通知区域图标、拾取光标和标题栏标志 |
-| `assets/app.ico` | 由 `tools/MakeIcon.cs` **生成** —— 文件图标与窗口图标 |
+| `assets/app.ico` | 多尺寸图标（16 → 256）—— 文件图标与窗口图标 |
 | `assets/Freeze Ray.png` | 仅用于设置窗口顶部的插图 |
 
-`icon.ico` 起初只含一张 256×256 的图像，Windows 不得不自行把它缩小以适应通知区域
-（16×16）和标题栏，结果模糊。因此 `tools/MakeIcon.cs` 会从 PNG 以高质量重采样预先
-生成九种常用尺寸（16 → 256）。
+要更换图标，请替换 `assets/icon.png`，用任意图标编辑器制作包含九种常用尺寸（16、20、
+24、32、40、48、64、128、256）的 `assets/app.ico`，然后运行 `build.bat`。
 
-要更换图标，请替换 `assets/icon.png` 后重新生成：
-
-```bat
-%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /out:MakeIcon.exe /r:System.Drawing.dll tools\MakeIcon.cs
-MakeIcon.exe
-build.bat
-```
+仅有一张 256×256 的图像是不够的：Windows 将不得不自行缩小它以适应通知区域（16×16）
+和标题栏，结果模糊。
 
 ## 工作原理
 

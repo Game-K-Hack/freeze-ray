@@ -143,21 +143,15 @@ Datei eingebettet**, das Binary funktioniert also allein.
 | Datei | Rolle |
 |---|---|
 | `assets/icon.png` | Quell-Logo (512×512, transparent) – Infobereichssymbol, Auswahlzeiger und Titelleistenmarke |
-| `assets/app.ico` | **Erzeugt** von `tools/MakeIcon.cs` – Datei- und Fenstersymbol |
+| `assets/app.ico` | Symbol in mehreren Größen (16 → 256) – Datei- und Fenstersymbol |
 | `assets/Freeze Ray.png` | Nur für den Kopfbereich der Einstellungen verwendete Illustration |
 
-`icon.ico` enthielt ursprünglich ein einziges 256×256-Bild, das Windows für den
-Infobereich (16×16) und die Titelleiste selbst hätte verkleinern müssen – mit
-unscharfem Ergebnis. `tools/MakeIcon.cs` berechnet deshalb die neun nützlichen
-Größen (16 → 256) aus dem PNG mit hochwertiger Neuabtastung vor.
+Zum Wechseln des Logos ersetzen Sie `assets/icon.png`, erzeugen ein passendes
+`assets/app.ico` mit den neun üblichen Größen (16, 20, 24, 32, 40, 48, 64, 128, 256)
+in einem beliebigen Icon-Editor und führen dann `build.bat` aus.
 
-Zum Wechseln des Logos ersetzen Sie `assets/icon.png` und erzeugen neu:
-
-```bat
-%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /out:MakeIcon.exe /r:System.Drawing.dll tools\MakeIcon.cs
-MakeIcon.exe
-build.bat
-```
+Ein einzelnes 256×256-Bild genügt nicht: Windows müsste es für den Infobereich
+(16×16) und die Titelleiste selbst verkleinern – mit unscharfem Ergebnis.
 
 ## Wie es funktioniert
 

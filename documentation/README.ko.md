@@ -129,21 +129,15 @@ build.bat
 | 파일 | 역할 |
 |---|---|
 | `assets/icon.png` | 원본 로고(512×512, 투명) — 알림 영역 아이콘, 지정 커서, 제목 표시줄 표식 |
-| `assets/app.ico` | `tools/MakeIcon.cs`가 **생성** — 파일 및 창 아이콘 |
+| `assets/app.ico` | 여러 크기의 아이콘(16 → 256) — 파일 및 창 아이콘 |
 | `assets/Freeze Ray.png` | 설정 화면 머리말에만 쓰이는 삽화 |
 
-`icon.ico`에는 원래 256×256 이미지 하나만 들어 있어, 알림 영역(16×16)과 제목
-표시줄용으로 Windows가 직접 줄여야 했고 결과가 흐릿했습니다. 그래서
-`tools/MakeIcon.cs`가 PNG에서 필요한 아홉 가지 크기(16 → 256)를 고품질 리샘플링
-으로 미리 계산합니다.
+로고를 바꾸려면 `assets/icon.png`를 교체하고, 아홉 가지 표준 크기(16, 20, 24, 32, 40,
+48, 64, 128, 256)를 담은 `assets/app.ico`를 원하는 아이콘 편집기로 만든 뒤 `build.bat`을
+실행하세요.
 
-로고를 바꾸려면 `assets/icon.png`를 교체하고 다시 생성하세요.
-
-```bat
-%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /out:MakeIcon.exe /r:System.Drawing.dll tools\MakeIcon.cs
-MakeIcon.exe
-build.bat
-```
+256×256 이미지 하나로는 부족합니다. 알림 영역(16×16)과 제목 표시줄용으로 Windows가
+직접 줄여야 해서 결과가 흐릿해집니다.
 
 ## 동작 원리
 

@@ -142,21 +142,15 @@ el ejecutable**, así que el binario funciona por sí solo.
 | Archivo | Función |
 |---|---|
 | `assets/icon.png` | Logotipo de origen (512×512, transparente): icono del área de notificación, cursor de selección y marca de la barra de título |
-| `assets/app.ico` | **Generado** por `tools/MakeIcon.cs`: icono del archivo y de la ventana |
+| `assets/app.ico` | Icono multirresolución (16 → 256): icono del archivo y de la ventana |
 | `assets/Freeze Ray.png` | Ilustración usada solo en la cabecera de la configuración |
 
-`icon.ico` contenía originalmente una única imagen de 256×256 que Windows habría
-tenido que reducir por su cuenta para el área de notificación (16×16) y la barra
-de título, con un resultado borroso. Por eso `tools/MakeIcon.cs` precalcula los
-nueve tamaños útiles (16 → 256) a partir del PNG con un remuestreo de calidad.
+Para cambiar el logotipo, sustituye `assets/icon.png`, genera un `assets/app.ico`
+con los nueve tamaños habituales (16, 20, 24, 32, 40, 48, 64, 128, 256) usando
+cualquier editor de iconos y ejecuta `build.bat`.
 
-Para cambiar el logotipo, sustituye `assets/icon.png` y regenera:
-
-```bat
-%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /out:MakeIcon.exe /r:System.Drawing.dll tools\MakeIcon.cs
-MakeIcon.exe
-build.bat
-```
+Una sola imagen de 256×256 no basta: Windows tendría que reducirla por su cuenta
+para el área de notificación (16×16) y la barra de título, con un resultado borroso.
 
 ## Cómo funciona
 

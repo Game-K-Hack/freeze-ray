@@ -144,21 +144,15 @@ nell'eseguibile**, quindi il binario funziona da solo.
 | File | Ruolo |
 |---|---|
 | `assets/icon.png` | Logo sorgente (512×512, trasparente): icona dell'area di notifica, cursore di selezione e contrassegno sulla barra del titolo |
-| `assets/app.ico` | **Generato** da `tools/MakeIcon.cs`: icona del file e della finestra |
+| `assets/app.ico` | Icona multi-risoluzione (16 → 256): icona del file e della finestra |
 | `assets/Freeze Ray.png` | Illustrazione usata solo nell'intestazione delle impostazioni |
 
-`icon.ico` conteneva in origine una sola immagine da 256×256, che Windows avrebbe
-dovuto rimpicciolire da sé per l'area di notifica (16×16) e la barra del titolo,
-con un risultato sfocato. Per questo `tools/MakeIcon.cs` precalcola le nove
-dimensioni utili (16 → 256) a partire dal PNG, con un ricampionamento di qualità.
+Per cambiare logo, sostituisci `assets/icon.png`, genera un `assets/app.ico`
+con le nove dimensioni consuete (16, 20, 24, 32, 40, 48, 64, 128, 256) usando un
+qualsiasi editor di icone, poi esegui `build.bat`.
 
-Per cambiare logo, sostituisci `assets/icon.png` e rigenera:
-
-```bat
-%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /out:MakeIcon.exe /r:System.Drawing.dll tools\MakeIcon.cs
-MakeIcon.exe
-build.bat
-```
+Una sola immagine da 256×256 non basta: Windows dovrebbe rimpicciolirla da sé per
+l'area di notifica (16×16) e la barra del titolo, con un risultato sfocato.
 
 ## Come funziona
 

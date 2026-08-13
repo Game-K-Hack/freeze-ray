@@ -30,9 +30,6 @@ namespace FreezeRay
         public const int WS_EX_TOPMOST = 0x0008;
 
         [DllImport("user32.dll")]
-        public static extern IntPtr GetForegroundWindow();
-
-        [DllImport("user32.dll")]
         public static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [DllImport("user32.dll")]
@@ -60,13 +57,11 @@ namespace FreezeRay
         // --- Marque posee sur la barre de titre ---
 
         public const int WS_POPUP = unchecked((int)0x80000000);
-        public const int WS_VISIBLE = 0x10000000;
         public const int WS_EX_LAYERED = 0x00080000;
         public const int WS_EX_TOOLWINDOW = 0x00000080;
         public const int WS_EX_NOACTIVATE = 0x08000000;
 
         public const int WM_MOUSEACTIVATE = 0x0021;
-        public const int WM_LBUTTONDOWN = 0x0201;
         public const int MA_NOACTIVATE = 3;
 
         public const int SW_HIDE = 0;
@@ -76,8 +71,6 @@ namespace FreezeRay
         public const int SM_CXSIZE = 30;
 
         public const int STATE_SYSTEM_INVISIBLE = 0x00008000;
-        public const int STATE_SYSTEM_OFFSCREEN = 0x00010000;
-        public const int STATE_SYSTEM_UNAVAILABLE = 0x00000001;
 
         public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
 
@@ -128,9 +121,6 @@ namespace FreezeRay
         public static extern bool IsIconic(IntPtr hWnd);
 
         [DllImport("user32.dll")]
-        public static extern bool IsZoomed(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
         public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
 
         [DllImport("user32.dll")]
@@ -169,11 +159,8 @@ namespace FreezeRay
         // --- Selection d'une fenetre a la souris ---
 
         public const int WM_SETCURSOR = 0x0020;
-        public const int WM_CANCELMODE = 0x001F;
-        public const int WM_MOUSEMOVE = 0x0200;
         public const int WM_LBUTTONUP = 0x0202;
         public const int WM_RBUTTONUP = 0x0205;
-        public const int WM_CAPTURECHANGED = 0x0215;
 
         public const int VK_ESCAPE = 0x1B;
 
@@ -214,15 +201,6 @@ namespace FreezeRay
             public IntPtr hbmMask;
             public IntPtr hbmColor;
         }
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr SetCapture(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        public static extern bool ReleaseCapture();
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr GetCapture();
 
         [DllImport("user32.dll")]
         public static extern IntPtr WindowFromPoint(POINT point);
