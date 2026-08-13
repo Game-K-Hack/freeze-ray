@@ -10,7 +10,6 @@ namespace FreezeRay
 {
     internal enum UpdateStatus
     {
-        NoSource,
         UpToDate,
         Available,
 
@@ -38,6 +37,15 @@ namespace FreezeRay
     /// </summary>
     internal static class Updater
     {
+        /// <summary>
+        /// Dépôt officiel du projet. Volontairement figé ici plutôt que réglable :
+        /// une source modifiable serait un moyen commode de faire télécharger
+        /// n'importe quoi à l'utilisateur sous le nom de l'application.
+        /// </summary>
+        public const string Repository = "Game-K-Hack/freeze-ray";
+
+        public const string ReleasesUrl = "https://github.com/" + Repository + "/releases/latest";
+
         private const int TIMEOUT_MS = 10000;
 
         public static Version CurrentVersion
@@ -59,23 +67,15 @@ namespace FreezeRay
         /// appelé depuis un thread de travail, à l'appelant de revenir sur
         /// l'interface.
         /// </summary>
-        public static void CheckAsync(string repository, Action<UpdateResult> callback)
+        public static void CheckAsync(Action<UpdateResult> callback)
         {
-            ThreadPool.QueueUserWorkItem(delegate { callback(Check(repository)); });
+            ThreadPool.QueueUserWorkItem(delegate { callback(Check()); });
         }
 
-        private static UpdateResult Check(string repository)
+        private static UpdateResult Check()
         {
             UpdateResult result = new UpdateResult();
-
-            if (string.IsNullOrEmpty(repository) || repository.Trim().Length == 0)
-            {
-                result.Status = UpdateStatus.NoSource;
-                return result;
-            }
-
-            repository = repository.Trim().Trim('/');
-            result.PageUrl = "https://github.com/" + repository + "/releases/latest";
+            result.PageUrl = ReleasesUrl;
 
             try
             {
@@ -85,7 +85,7 @@ namespace FreezeRay
                 ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
 
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(
-                    "https://api.github.com/repos/" + repository + "/releases/latest");
+                    "https://api.github.com/repos/" + Repository + "/releases/latest");
                 request.UserAgent = Strings.AppName;      // exigé par l'API GitHub
                 request.Accept = "application/vnd.github+json";
                 request.Timeout = TIMEOUT_MS;

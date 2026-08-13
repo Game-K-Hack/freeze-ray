@@ -73,6 +73,10 @@ namespace FreezeRay
         private PickAction _pendingAction;
         private int _tick;
         private SettingsForm _settingsForm;
+        private Control _sync;
+
+        /// <summary>Page à ouvrir si l'utilisateur clique la bulle de mise à jour.</summary>
+        private string _updatePageUrl;
 
         public TrayContext()
         {
@@ -138,8 +142,15 @@ namespace FreezeRay
             _tray.Visible = true;
             _tray.ContextMenuStrip = _menu;
             _tray.MouseClick += OnTrayClick;
+            _tray.BalloonTipClicked += OnBalloonClicked;
 
             ApplyLanguage();
+
+            // La réponse arrive depuis un thread de travail : ce contrôle sert
+            // uniquement à repasser sur le fil de l'interface.
+            _sync = new Control();
+            _sync.CreateControl();
+            if (_settings.CheckUpdatesAtStartup) CheckUpdatesInBackground();
 
             if (!VirtualDesktop.Available)
             {
@@ -526,6 +537,46 @@ namespace FreezeRay
             Notifications.Show(_tray, title, text, icon, 2500);
         }
 
+        // --- Mise à jour au démarrage ---
+
+        /// <summary>
+        /// Vérification discrète au lancement : rien ne s'affiche si la version
+        /// est à jour, ni si GitHub est injoignable. Seule une nouvelle version
+        /// mérite d'interrompre l'utilisateur, et par une bulle plutôt que par
+        /// une fenêtre qui volerait le focus au démarrage de la session.
+        /// </summary>
+        private void CheckUpdatesInBackground()
+        {
+            Updater.CheckAsync(delegate(UpdateResult result)
+            {
+                if (result.Status != UpdateStatus.Available) return;
+                if (_sync == null || _sync.IsDisposed || !_sync.IsHandleCreated) return;
+
+                _sync.BeginInvoke((MethodInvoker)delegate
+                {
+                    _updatePageUrl = result.PageUrl;
+                    Notify(Strings.T("update.availableTitle"),
+                        Strings.T("update.availableBalloon", result.LatestVersion),
+                        ToolTipIcon.Info);
+                });
+            });
+        }
+
+        private void OnBalloonClicked(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(_updatePageUrl)) return;
+            string url = _updatePageUrl;
+            _updatePageUrl = null;
+            try
+            {
+                Process.Start(url);
+            }
+            catch (Exception)
+            {
+                // Navigateur indisponible : la page reste accessible depuis les paramètres.
+            }
+        }
+
         // --- Démarrage automatique ---
 
         /// <summary>
@@ -607,6 +658,7 @@ namespace FreezeRay
                 _pickStarter.Dispose();
                 _tracker.Dispose();
                 _helper.DestroyHandle();
+                if (_sync != null) _sync.Dispose();
             }
             base.Dispose(disposing);
         }

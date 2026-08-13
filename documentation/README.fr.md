@@ -105,7 +105,7 @@ et le **numéro de version**, puis :
 | **Tout libérer en quittant** | Évite de laisser des fenêtres bloquées |
 | **Afficher les notifications** | Ne masque que les bulles d'information — **les erreurs restent toujours signalées**, car les taire ferait passer une action en échec pour une action sans effet |
 | **Langue** | Appliquée immédiatement, menu, infobulle et notifications compris |
-| **Dépôt GitHub** | Source utilisée pour la recherche de mise à jour, au format `proprietaire/depot` |
+| **Rechercher les mises à jour au démarrage** | Interroge GitHub au lancement ; silencieux sauf si une version plus récente existe |
 
 Les réglages vivent dans `%APPDATA%\Freeze Ray\settings.ini`, un simple fichier
 `clé=valeur` qui se lit et se corrige à la main. Au premier lancement, la langue suit celle de Windows, avec repli sur l'anglais. Neuf langues sont proposées : anglais, français, allemand, espagnol, italien, japonais, coréen, russe et chinois.
@@ -117,9 +117,16 @@ dans la liste déroulante.
 
 ### Mises à jour
 
-**Rechercher les mises à jour** interroge l'API publique des versions de GitHub
-pour le dépôt configuré, compare les numéros et propose d'ouvrir la page de
-téléchargement.
+**Rechercher les mises à jour** interroge l'API publique des versions de GitHub,
+compare les numéros et propose d'ouvrir la page de téléchargement. La même
+vérification peut se faire au démarrage, où elle reste **silencieuse sauf si une
+version plus récente existe** — elle affiche alors une notification sur laquelle
+cliquer pour ouvrir la page. Rien n'est signalé si vous êtes à jour ou si GitHub
+est injoignable.
+
+Le dépôt est **figé dans le code** ([Updater.cs](../Updater.cs)) plutôt que
+réglable : une source de mise à jour modifiable par l'utilisateur serait un moyen
+commode de lui faire télécharger n'importe quoi sous le nom de l'application.
 
 **L'application ne se met volontairement pas à jour toute seule.** Remplacer un
 exécutable en cours d'exécution demande un programme relais, et le faire sans

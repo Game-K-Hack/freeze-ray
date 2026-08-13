@@ -105,7 +105,7 @@ el nombre y el **número de versión**, y luego:
 | **Liberar todo al salir** | Evita dejar ventanas bloqueadas |
 | **Mostrar notificaciones** | Solo oculta los globos informativos: **los errores siempre se avisan**, porque silenciarlos haría que una acción fallida pareciera una acción sin efecto |
 | **Idioma** | Se aplica de inmediato, incluidos menú, información sobre herramientas y notificaciones |
-| **Repositorio de GitHub** | Fuente usada para buscar actualizaciones, con el formato `propietario/repositorio` |
+| **Buscar actualizaciones al iniciar** | Consulta GitHub al arrancar; silencioso salvo que exista una versión más reciente |
 
 Los ajustes viven en `%APPDATA%\Freeze Ray\settings.ini`, un simple archivo
 `clave=valor` que puedes leer y corregir a mano. En el primer arranque el idioma sigue al de Windows, con reserva en inglés. Hay nueve idiomas disponibles: inglés, francés, alemán, español, italiano, japonés, coreano, ruso y chino.

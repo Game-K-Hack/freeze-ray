@@ -105,7 +105,7 @@ Erreichbar über **Einstellungen…** im Menü. Das Fenster zeigt Logo, Name und
 | **Beim Beenden alles freigeben** | Verhindert hängengebliebene Fenster |
 | **Benachrichtigungen anzeigen** | Blendet nur informative Sprechblasen aus – **Fehler werden immer gemeldet**, denn sie zu verschweigen ließe eine fehlgeschlagene Aktion wie eine wirkungslose aussehen |
 | **Sprache** | Sofort wirksam, einschließlich Menü, Quickinfo und Benachrichtigungen |
-| **GitHub-Repository** | Quelle für die Update-Prüfung, in der Form `besitzer/repository` |
+| **Beim Start nach Updates suchen** | Fragt GitHub beim Start ab; stumm, sofern keine neuere Version vorliegt |
 
 Die Einstellungen liegen in `%APPDATA%\Freeze Ray\settings.ini`, einer schlichten
 `Schlüssel=Wert`-Datei, die sich von Hand lesen und korrigieren lässt. Beim ersten Start folgt die Sprache jener von Windows, ersatzweise Englisch. Neun Sprachen stehen zur Wahl: Englisch, Französisch, Deutsch, Spanisch, Italienisch, Japanisch, Koreanisch, Russisch und Chinesisch.

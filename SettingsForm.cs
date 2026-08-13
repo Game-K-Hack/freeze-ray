@@ -27,9 +27,7 @@ namespace FreezeRay
         private readonly Label _languageLabel;
         private readonly ComboBox _language;
         private readonly GroupBox _updateBox;
-        private readonly Label _repositoryLabel;
-        private readonly TextBox _repository;
-        private readonly Label _repositoryHint;
+        private readonly CheckBox _checkAtStartup;
         private readonly Button _check;
         private readonly Label _updateStatus;
         private readonly Button _close;
@@ -52,7 +50,7 @@ namespace FreezeRay
             ShowInTaskbar = true;
             StartPosition = FormStartPosition.CenterScreen;
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(430, 444);
+            ClientSize = new Size(430, 404);
             Icon = Assets.GetIcon(32);
 
             // Illustration propre à cet en-tête : les autres usages du logo
@@ -119,43 +117,29 @@ namespace FreezeRay
 
             _updateBox = new GroupBox();
             _updateBox.Location = new Point(16, 260);
-            _updateBox.Size = new Size(398, 136);
+            _updateBox.Size = new Size(398, 96);
 
-            // Libellé sur sa propre ligne : « Репозиторий GitHub » ou
-            // « GitHub-Repository » débordent d'une colonne de largeur fixe.
-            _repositoryLabel = new Label();
-            _repositoryLabel.Location = new Point(14, 22);
-            _repositoryLabel.AutoSize = true;
-
-            _repository = new TextBox();
-            _repository.Location = new Point(14, 42);
-            _repository.Size = new Size(368, 20);
-            _repository.TextChanged += OnSimpleChanged;
-
-            // Deux lignes : la même phrase est bien plus longue dans certaines langues.
-            _repositoryHint = new Label();
-            _repositoryHint.Location = new Point(14, 68);
-            _repositoryHint.Size = new Size(368, 30);
-            _repositoryHint.ForeColor = SystemColors.GrayText;
+            _checkAtStartup = new CheckBox();
+            _checkAtStartup.Location = new Point(14, 24);
+            _checkAtStartup.AutoSize = true;
+            _checkAtStartup.CheckedChanged += OnSimpleChanged;
 
             _check = new Button();
-            _check.Location = new Point(14, 100);
+            _check.Location = new Point(14, 54);
             _check.Size = new Size(210, 26);
             _check.Click += OnCheckClicked;
 
             _updateStatus = new Label();
-            _updateStatus.Location = new Point(232, 106);
+            _updateStatus.Location = new Point(232, 60);
             _updateStatus.Size = new Size(150, 16);
             _updateStatus.ForeColor = SystemColors.GrayText;
 
-            _updateBox.Controls.Add(_repositoryLabel);
-            _updateBox.Controls.Add(_repository);
-            _updateBox.Controls.Add(_repositoryHint);
+            _updateBox.Controls.Add(_checkAtStartup);
             _updateBox.Controls.Add(_check);
             _updateBox.Controls.Add(_updateStatus);
 
             _close = new Button();
-            _close.Location = new Point(324, 408);
+            _close.Location = new Point(324, 368);
             _close.Size = new Size(90, 26);
             _close.Click += delegate { Close(); };
 
@@ -180,7 +164,7 @@ namespace FreezeRay
             _releaseOnExit.Checked = _settings.ReleaseAllOnExit;
             _notifications.Checked = _settings.ShowNotifications;
             _language.SelectedIndex = Strings.IndexOf(_settings.Language);
-            _repository.Text = _settings.UpdateRepository ?? string.Empty;
+            _checkAtStartup.Checked = _settings.CheckUpdatesAtStartup;
             _loading = false;
         }
 
@@ -196,8 +180,7 @@ namespace FreezeRay
             _notificationsHint.Text = Strings.T("settings.notificationsHint");
             _languageLabel.Text = Strings.T("settings.language");
             _updateBox.Text = Strings.T("settings.updates");
-            _repositoryLabel.Text = Strings.T("settings.updateSource");
-            _repositoryHint.Text = Strings.T("settings.updateSourceHint");
+            _checkAtStartup.Text = Strings.T("settings.checkAtStartup");
             _check.Text = Strings.T("settings.check");
             _close.Text = Strings.T("settings.close");
         }
@@ -234,7 +217,7 @@ namespace FreezeRay
             _settings.ReleaseAllOnExit = _releaseOnExit.Checked;
             _settings.ShowNotifications = _notifications.Checked;
             _settings.Language = Strings.All[_language.SelectedIndex].Id;
-            _settings.UpdateRepository = _repository.Text.Trim();
+            _settings.CheckUpdatesAtStartup = _checkAtStartup.Checked;
             _settings.Save();
             if (_onChanged != null) _onChanged();
         }
@@ -246,7 +229,7 @@ namespace FreezeRay
             _check.Enabled = false;
             _updateStatus.Text = Strings.T("update.checking");
 
-            Updater.CheckAsync(_settings.UpdateRepository, delegate(UpdateResult result)
+            Updater.CheckAsync(delegate(UpdateResult result)
             {
                 // La réponse arrive depuis un thread de travail.
                 if (IsDisposed || !IsHandleCreated) return;
@@ -261,12 +244,6 @@ namespace FreezeRay
 
             switch (result.Status)
             {
-                case UpdateStatus.NoSource:
-                    MessageBox.Show(this, Strings.T("update.noSource"),
-                        Strings.T("settings.updates"), MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                    break;
-
                 case UpdateStatus.UpToDate:
                     MessageBox.Show(this,
                         Strings.T("update.upToDate", Updater.CurrentVersionText),

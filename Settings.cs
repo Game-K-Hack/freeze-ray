@@ -18,22 +18,19 @@ namespace FreezeRay
     {
         private const string FILE_NAME = "settings.ini";
 
-        /// <summary>Dépôt officiel du projet, proposé tant que rien n'est saisi.</summary>
-        public const string DEFAULT_REPOSITORY = "Game-K-Hack/freeze-ray";
-
         public bool ReleaseAllOnExit { get; set; }
         public bool ShowNotifications { get; set; }
         public Language Language { get; set; }
 
-        /// <summary>Dépôt GitHub « proprietaire/depot », vide si non utilisé.</summary>
-        public string UpdateRepository { get; set; }
+        /// <summary>Interroger GitHub au lancement de l'application.</summary>
+        public bool CheckUpdatesAtStartup { get; set; }
 
         public Settings()
         {
             ReleaseAllOnExit = true;
             ShowNotifications = true;
             Language = Strings.Detect();
-            UpdateRepository = DEFAULT_REPOSITORY;
+            CheckUpdatesAtStartup = true;
         }
 
         public static string Folder
@@ -80,8 +77,8 @@ namespace FreezeRay
                         case "language":
                             settings.Language = Strings.FromCode(value);
                             break;
-                        case "updateRepository":
-                            settings.UpdateRepository = value;
+                        case "checkUpdatesAtStartup":
+                            settings.CheckUpdatesAtStartup = ParseBool(value, settings.CheckUpdatesAtStartup);
                             break;
                     }
                 }
@@ -107,7 +104,7 @@ namespace FreezeRay
                 lines.Add("releaseAllOnExit=" + (ReleaseAllOnExit ? "true" : "false"));
                 lines.Add("showNotifications=" + (ShowNotifications ? "true" : "false"));
                 lines.Add("language=" + Strings.CodeOf(Language));
-                lines.Add("updateRepository=" + (UpdateRepository ?? string.Empty));
+                lines.Add("checkUpdatesAtStartup=" + (CheckUpdatesAtStartup ? "true" : "false"));
 
                 File.WriteAllLines(FilePath, lines.ToArray(), Encoding.UTF8);
             }

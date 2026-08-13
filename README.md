@@ -98,7 +98,7 @@ and the **version number**, then:
 | **Release everything on exit** | Avoids leaving windows stuck |
 | **Show notifications** | Hides informational balloons only — **errors are always reported**, because silencing them would make a broken action look like nothing happened |
 | **Language** | Applied immediately, including the menu, the tooltip and the notifications |
-| **GitHub repository** | Source used to check for updates, in `owner/repository` form |
+| **Check for updates at startup** | Queries GitHub when the application starts; silent unless a newer version exists |
 
 Settings live in `%APPDATA%\Freeze Ray\settings.ini`, a plain `key=value` file you
 can read and fix by hand. On first run the language follows Windows, falling back to English. Nine languages are available: English, French, German, Spanish, Italian, Japanese, Korean, Russian and Chinese.
@@ -109,8 +109,15 @@ Windows. Adding a language means adding a table and one entry in the drop-down.
 
 ### Updates
 
-**Check for updates** queries the public GitHub releases API for the configured
-repository, compares version numbers and offers to open the download page.
+**Check for updates** queries the public GitHub releases API, compares version
+numbers and offers to open the download page. The same check can run at startup,
+where it stays **silent unless a newer version exists** — it then shows a
+notification you can click to open the download page. Nothing is reported when
+you are up to date or when GitHub cannot be reached.
+
+The repository is **fixed in the code** ([Updater.cs](Updater.cs)) rather than
+being configurable: a user-editable update source would be a convenient way to
+have someone download anything under the application's name.
 
 **The application deliberately does not update itself.** Replacing a running
 executable requires a helper process, and doing it without a signature or an
