@@ -102,7 +102,7 @@ namespace FreezeRay
                 if (!match.Success)
                 {
                     result.Status = UpdateStatus.Error;
-                    result.Error = "réponse inattendue";
+                    result.Error = Strings.T("update.badResponse");
                     return result;
                 }
 

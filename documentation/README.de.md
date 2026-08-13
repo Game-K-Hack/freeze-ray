@@ -108,9 +108,7 @@ Erreichbar über **Einstellungen…** im Menü. Das Fenster zeigt Logo, Name und
 | **GitHub-Repository** | Quelle für die Update-Prüfung, in der Form `besitzer/repository` |
 
 Die Einstellungen liegen in `%APPDATA%\Freeze Ray\settings.ini`, einer schlichten
-`Schlüssel=Wert`-Datei, die sich von Hand lesen und korrigieren lässt. Beim ersten
-Start folgt die Sprache jener von Windows (Englisch, sofern das System nicht auf
-Französisch steht).
+`Schlüssel=Wert`-Datei, die sich von Hand lesen und korrigieren lässt. Beim ersten Start folgt die Sprache jener von Windows, ersatzweise Englisch. Neun Sprachen stehen zur Wahl: Englisch, Französisch, Deutsch, Spanisch, Italienisch, Japanisch, Koreanisch, Russisch und Chinesisch.
 
 Die Texte stehen in [Strings.cs](../Strings.cs) als eine Tabelle je Sprache statt
 in Ressourcendateien, damit sich das Projekt weiterhin mit dem von Windows

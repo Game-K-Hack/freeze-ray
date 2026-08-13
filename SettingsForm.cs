@@ -52,7 +52,7 @@ namespace FreezeRay
             ShowInTaskbar = true;
             StartPosition = FormStartPosition.CenterScreen;
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(430, 418);
+            ClientSize = new Size(430, 444);
             Icon = Assets.GetIcon(32);
 
             // Illustration propre à cet en-tête : les autres usages du logo
@@ -105,7 +105,9 @@ namespace FreezeRay
             _language.DropDownStyle = ComboBoxStyle.DropDownList;
             _language.Location = new Point(90, 126);
             _language.Size = new Size(160, 21);
-            _language.Items.AddRange(new object[] { "Français", "English" });
+            // La liste se remplit depuis le registre de langues : ajouter une
+            // traduction ne demande aucune retouche ici.
+            foreach (Strings.Entry entry in Strings.All) _language.Items.Add(entry.NativeName);
             _language.SelectedIndexChanged += OnLanguageChanged;
 
             _generalBox.Controls.Add(_startWithWindows);
@@ -117,30 +119,33 @@ namespace FreezeRay
 
             _updateBox = new GroupBox();
             _updateBox.Location = new Point(16, 260);
-            _updateBox.Size = new Size(398, 110);
+            _updateBox.Size = new Size(398, 136);
 
+            // Libellé sur sa propre ligne : « Репозиторий GitHub » ou
+            // « GitHub-Repository » débordent d'une colonne de largeur fixe.
             _repositoryLabel = new Label();
-            _repositoryLabel.Location = new Point(14, 26);
+            _repositoryLabel.Location = new Point(14, 22);
             _repositoryLabel.AutoSize = true;
 
             _repository = new TextBox();
-            _repository.Location = new Point(120, 23);
-            _repository.Size = new Size(260, 20);
+            _repository.Location = new Point(14, 42);
+            _repository.Size = new Size(368, 20);
             _repository.TextChanged += OnSimpleChanged;
 
+            // Deux lignes : la même phrase est bien plus longue dans certaines langues.
             _repositoryHint = new Label();
-            _repositoryHint.Location = new Point(14, 50);
-            _repositoryHint.Size = new Size(370, 16);
+            _repositoryHint.Location = new Point(14, 68);
+            _repositoryHint.Size = new Size(368, 30);
             _repositoryHint.ForeColor = SystemColors.GrayText;
 
             _check = new Button();
-            _check.Location = new Point(14, 72);
-            _check.Size = new Size(180, 26);
+            _check.Location = new Point(14, 100);
+            _check.Size = new Size(210, 26);
             _check.Click += OnCheckClicked;
 
             _updateStatus = new Label();
-            _updateStatus.Location = new Point(202, 78);
-            _updateStatus.Size = new Size(182, 16);
+            _updateStatus.Location = new Point(232, 106);
+            _updateStatus.Size = new Size(150, 16);
             _updateStatus.ForeColor = SystemColors.GrayText;
 
             _updateBox.Controls.Add(_repositoryLabel);
@@ -150,7 +155,7 @@ namespace FreezeRay
             _updateBox.Controls.Add(_updateStatus);
 
             _close = new Button();
-            _close.Location = new Point(324, 382);
+            _close.Location = new Point(324, 408);
             _close.Size = new Size(90, 26);
             _close.Click += delegate { Close(); };
 
@@ -174,7 +179,7 @@ namespace FreezeRay
             _startWithWindows.Checked = _readAutoStart();
             _releaseOnExit.Checked = _settings.ReleaseAllOnExit;
             _notifications.Checked = _settings.ShowNotifications;
-            _language.SelectedIndex = _settings.Language == Language.French ? 0 : 1;
+            _language.SelectedIndex = Strings.IndexOf(_settings.Language);
             _repository.Text = _settings.UpdateRepository ?? string.Empty;
             _loading = false;
         }
@@ -219,7 +224,7 @@ namespace FreezeRay
         private void OnLanguageChanged(object sender, EventArgs e)
         {
             if (_loading) return;
-            Strings.Current = _language.SelectedIndex == 0 ? Language.French : Language.English;
+            Strings.Current = Strings.All[_language.SelectedIndex].Id;
             Commit();
             ApplyTexts();
         }
@@ -228,7 +233,7 @@ namespace FreezeRay
         {
             _settings.ReleaseAllOnExit = _releaseOnExit.Checked;
             _settings.ShowNotifications = _notifications.Checked;
-            _settings.Language = _language.SelectedIndex == 0 ? Language.French : Language.English;
+            _settings.Language = Strings.All[_language.SelectedIndex].Id;
             _settings.UpdateRepository = _repository.Text.Trim();
             _settings.Save();
             if (_onChanged != null) _onChanged();

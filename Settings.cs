@@ -78,9 +78,7 @@ namespace FreezeRay
                             settings.ShowNotifications = ParseBool(value, settings.ShowNotifications);
                             break;
                         case "language":
-                            settings.Language = value.Equals("fr", StringComparison.OrdinalIgnoreCase)
-                                ? Language.French
-                                : Language.English;
+                            settings.Language = Strings.FromCode(value);
                             break;
                         case "updateRepository":
                             settings.UpdateRepository = value;
@@ -108,7 +106,7 @@ namespace FreezeRay
                 lines.Add("# " + Strings.AppName + " — réglages");
                 lines.Add("releaseAllOnExit=" + (ReleaseAllOnExit ? "true" : "false"));
                 lines.Add("showNotifications=" + (ShowNotifications ? "true" : "false"));
-                lines.Add("language=" + (Language == Language.French ? "fr" : "en"));
+                lines.Add("language=" + Strings.CodeOf(Language));
                 lines.Add("updateRepository=" + (UpdateRepository ?? string.Empty));
 
                 File.WriteAllLines(FilePath, lines.ToArray(), Encoding.UTF8);

@@ -101,8 +101,7 @@ and the **version number**, then:
 | **GitHub repository** | Source used to check for updates, in `owner/repository` form |
 
 Settings live in `%APPDATA%\Freeze Ray\settings.ini`, a plain `key=value` file you
-can read and fix by hand. On first run the language follows Windows (English
-unless the system is in French).
+can read and fix by hand. On first run the language follows Windows, falling back to English. Nine languages are available: English, French, German, Spanish, Italian, Japanese, Korean, Russian and Chinese.
 
 The texts live in [Strings.cs](Strings.cs) as one table per language rather than
 resource files, so the project stays buildable with the compiler shipped with
