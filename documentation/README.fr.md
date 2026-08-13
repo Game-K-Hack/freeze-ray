@@ -50,7 +50,10 @@ Les deux peuvent s'appliquer à la même fenêtre.
 5. Changez de bureau avec `Ctrl + Win + ←/→` : la fenêtre est toujours là.
 6. Pour la libérer, cliquez le logo sur sa barre de titre.
 
-L'exécutable est autonome : ni installateur, ni dossier `assets` nécessaires.
+Deux façons de l'installer : lancer `Freeze Ray Setup.exe`, qui présente la
+licence, laisse choisir le dossier et propose les raccourcis bureau et menu
+Démarrer ; ou simplement déposer `Freeze Ray.exe` où vous voulez — il est
+autonome et n'a pas besoin du dossier `assets`.
 
 ## Utilisation
 
@@ -107,8 +110,13 @@ et le **numéro de version**, puis :
 | **Langue** | Appliquée immédiatement, menu, infobulle et notifications compris |
 | **Rechercher les mises à jour au démarrage** | Interroge GitHub au lancement ; silencieux sauf si une version plus récente existe |
 
-Les réglages vivent dans `%APPDATA%\Freeze Ray\settings.ini`, un simple fichier
+Les réglages vivent dans `settings.ini`, un simple fichier
 `clé=valeur` qui se lit et se corrige à la main. Au premier lancement, la langue suit celle de Windows, avec repli sur l'anglais. Neuf langues sont proposées : anglais, français, allemand, espagnol, italien, japonais, coréen, russe et chinois.
+
+Le fichier se trouve **à côté de l'application** : l'installation tient donc dans
+un seul dossier, qu'on peut copier sur une clé ou effacer d'un bloc. Si ce dossier
+n'est pas inscriptible — une copie déposée dans `Program Files`, par exemple — les
+réglages retombent sur `%APPDATA%\Freeze Ray` au lieu d'être perdus.
 
 Les textes vivent dans [Strings.cs](../Strings.cs), une table par langue plutôt
 que des fichiers de ressources : le projet reste compilable avec le compilateur
@@ -241,3 +249,12 @@ extension.
   [VirtualDesktop.cs](../VirtualDesktop.cs) devra être ajusté.
 - L'épinglage porte sur la fenêtre, pas sur l'application : rouvrir une fenêtre
   après l'avoir fermée demande de la ré-épingler.
+
+## Licence
+
+Usage libre et sans limite, chez vous comme au travail. Vous pouvez le copier,
+l'étudier, le modifier et le transmettre, à condition de **ne pas le vendre**, de
+**citer l'auteur** dans toute version modifiée publiée, et de conserver la licence
+avec chaque copie.
+
+Texte complet : [LICENSE.md](../LICENSE.md).

@@ -51,7 +51,10 @@ Ambas pueden aplicarse a la misma ventana.
 5. Cambia de escritorio con `Ctrl + Win + ←/→`: la ventana sigue ahí.
 6. Para liberarla, haz clic en el logotipo de su barra de título.
 
-El ejecutable es autónomo: no necesita instalador ni la carpeta `assets`.
+Dos formas de instalarlo: ejecutar `Freeze Ray Setup.exe`, que muestra la
+licencia, permite elegir la carpeta y ofrece accesos directos en el escritorio y
+en el menú Inicio; o simplemente dejar `Freeze Ray.exe` donde quieras, ya que es
+autónomo y no necesita la carpeta `assets`.
 
 ## Uso
 
@@ -107,8 +110,13 @@ el nombre y el **número de versión**, y luego:
 | **Idioma** | Se aplica de inmediato, incluidos menú, información sobre herramientas y notificaciones |
 | **Buscar actualizaciones al iniciar** | Consulta GitHub al arrancar; silencioso salvo que exista una versión más reciente |
 
-Los ajustes viven en `%APPDATA%\Freeze Ray\settings.ini`, un simple archivo
+Los ajustes viven en `settings.ini`, un simple archivo
 `clave=valor` que puedes leer y corregir a mano. En el primer arranque el idioma sigue al de Windows, con reserva en inglés. Hay nueve idiomas disponibles: inglés, francés, alemán, español, italiano, japonés, coreano, ruso y chino.
+
+El archivo está **junto a la aplicación**: toda la instalación cabe en una sola
+carpeta que puedes copiar a una memoria USB o borrar de una vez. Si esa carpeta no
+admite escritura — una copia en `Program Files`, por ejemplo — los ajustes pasan a
+`%APPDATA%\Freeze Ray` en lugar de perderse.
 
 Los textos están en [Strings.cs](../Strings.cs), una tabla por idioma en lugar de
 archivos de recursos, para que el proyecto siga compilándose con el compilador que
@@ -232,3 +240,11 @@ nombre sin extensión.
   [VirtualDesktop.cs](../VirtualDesktop.cs).
 - La fijación se aplica a la ventana, no a la aplicación: si cierras una ventana y
   la vuelves a abrir, hay que fijarla de nuevo.
+
+## Licencia
+
+Uso libre y sin límite, en casa y en el trabajo. Puedes copiarlo, estudiarlo,
+modificarlo y transmitirlo, siempre que **no lo vendas**, **cites al autor** en
+cualquier versión modificada que publiques y conserves la licencia con cada copia.
+
+Texto completo: [LICENSE.md](../LICENSE.md).

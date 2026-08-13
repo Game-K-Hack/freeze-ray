@@ -25,7 +25,8 @@ rem /resource     : logo embarque, l'exe reste utilisable sans le dossier assets
   "%~dp0Program.cs" "%~dp0Native.cs" "%~dp0VirtualDesktop.cs" ^
   "%~dp0WindowPicker.cs" "%~dp0WindowMarker.cs" "%~dp0Assets.cs" ^
   "%~dp0Notifications.cs" "%~dp0AssemblyInfo.cs" ^
-  "%~dp0Strings.cs" "%~dp0Settings.cs" "%~dp0Updater.cs" "%~dp0SettingsForm.cs"
+  "%~dp0Strings.cs" "%~dp0Settings.cs" "%~dp0Updater.cs" "%~dp0SettingsForm.cs" ^
+  "%~dp0Uninstaller.cs" "%~dp0InstallPaths.cs"
 
 if errorlevel 1 (
   echo.

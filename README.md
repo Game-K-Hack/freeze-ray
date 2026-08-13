@@ -45,7 +45,10 @@ Both can be applied to the same window.
 5. Switch desktops with `Ctrl + Win + ←/→`: the window is still there.
 6. To release it, click the logo on its title bar.
 
-The executable is self-contained: it needs no installer and no `assets` folder.
+Two ways to install it: run `Freeze Ray Setup.exe`, which shows the licence, lets
+you pick the folder and offers desktop and Start-menu shortcuts; or simply drop
+`Freeze Ray.exe` wherever you like — it is self-contained and needs no `assets`
+folder.
 
 ## Using it
 
@@ -100,8 +103,13 @@ and the **version number**, then:
 | **Language** | Applied immediately, including the menu, the tooltip and the notifications |
 | **Check for updates at startup** | Queries GitHub when the application starts; silent unless a newer version exists |
 
-Settings live in `%APPDATA%\Freeze Ray\settings.ini`, a plain `key=value` file you
+Settings live in `settings.ini`, a plain `key=value` file you
 can read and fix by hand. On first run the language follows Windows, falling back to English. Nine languages are available: English, French, German, Spanish, Italian, Japanese, Korean, Russian and Chinese.
+
+The file sits **next to the application**, so the whole installation is one
+folder you can copy onto a USB stick or delete in one go. If that folder is not
+writable — a copy dropped into `Program Files`, say — the settings fall back to
+`%APPDATA%\Freeze Ray` instead of being silently lost.
 
 The texts live in [Strings.cs](Strings.cs) as one table per language rather than
 resource files, so the project stays buildable with the compiler shipped with
@@ -225,3 +233,11 @@ installing a Start-menu shortcut would allow a name without the extension.
   [VirtualDesktop.cs](VirtualDesktop.cs) must be adjusted.
 - Pinning applies to the window, not to the application: reopening a window after
   closing it requires pinning it again.
+
+## Licence
+
+Free and unlimited use, at home and at work. You may copy it, study it, modify it
+and pass it on, provided you **do not sell it**, **credit the author** in any
+public modified version, and keep the licence with every copy.
+
+Full text: [LICENSE.md](LICENSE.md).

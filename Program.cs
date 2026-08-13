@@ -12,6 +12,21 @@ namespace FreezeRay
         [STAThread]
         private static void Main()
         {
+            Strings.Current = Settings.Load().Language;
+
+            // Appelé depuis « Applications et fonctionnalités ». Traité avant le
+            // verrou d'instance unique : on doit pouvoir désinstaller même si une
+            // copie tourne déjà.
+            foreach (string argument in Environment.GetCommandLineArgs())
+            {
+                if (string.Equals(argument, "--uninstall", StringComparison.OrdinalIgnoreCase))
+                {
+                    Application.EnableVisualStyles();
+                    Uninstaller.Run();
+                    return;
+                }
+            }
+
             bool createdNew;
             using (System.Threading.Mutex mutex =
                    new System.Threading.Mutex(true, "FreezeRay.SingleInstance", out createdNew))
@@ -83,6 +98,11 @@ namespace FreezeRay
 
             _settings = Settings.Load();
             Strings.Current = _settings.Language;
+
+            // Premier lancement : on dépose le fichier de réglages tout de suite,
+            // pour que le dossier d'installation le contienne visiblement sans
+            // attendre une première visite des paramètres.
+            if (!System.IO.File.Exists(Settings.FilePath)) _settings.Save();
 
             _ownProcessId = Process.GetCurrentProcess().Id;
             _helper = new ForegroundHelper();

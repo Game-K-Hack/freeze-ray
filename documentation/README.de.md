@@ -49,8 +49,10 @@ Beides lässt sich auf dasselbe Fenster anwenden.
 5. Wechseln Sie den Desktop mit `Strg + Win + ←/→`: Das Fenster ist noch da.
 6. Zum Freigeben klicken Sie das Logo in der Titelleiste an.
 
-Die ausführbare Datei ist eigenständig: kein Installationsprogramm, kein
-`assets`-Ordner nötig.
+Zwei Wege: `Freeze Ray Setup.exe` ausführen — es zeigt die Lizenz, lässt den
+Ordner wählen und bietet Verknüpfungen auf Desktop und im Startmenü an — oder
+`Freeze Ray.exe` einfach ablegen, wo Sie möchten; die Datei ist eigenständig und
+braucht keinen `assets`-Ordner.
 
 ## Bedienung
 
@@ -107,8 +109,13 @@ Erreichbar über **Einstellungen…** im Menü. Das Fenster zeigt Logo, Name und
 | **Sprache** | Sofort wirksam, einschließlich Menü, Quickinfo und Benachrichtigungen |
 | **Beim Start nach Updates suchen** | Fragt GitHub beim Start ab; stumm, sofern keine neuere Version vorliegt |
 
-Die Einstellungen liegen in `%APPDATA%\Freeze Ray\settings.ini`, einer schlichten
+Die Einstellungen liegen in `settings.ini`, einer schlichten
 `Schlüssel=Wert`-Datei, die sich von Hand lesen und korrigieren lässt. Beim ersten Start folgt die Sprache jener von Windows, ersatzweise Englisch. Neun Sprachen stehen zur Wahl: Englisch, Französisch, Deutsch, Spanisch, Italienisch, Japanisch, Koreanisch, Russisch und Chinesisch.
+
+Die Datei liegt **neben der Anwendung**: Die gesamte Installation ist damit ein
+einziger Ordner, den man auf einen USB-Stick kopieren oder am Stück löschen kann.
+Ist dieser Ordner nicht beschreibbar — etwa eine Kopie in `Program Files` —, weichen
+die Einstellungen auf `%APPDATA%\Freeze Ray` aus, statt verloren zu gehen.
 
 Die Texte stehen in [Strings.cs](../Strings.cs) als eine Tabelle je Sprache statt
 in Ressourcendateien, damit sich das Projekt weiterhin mit dem von Windows
@@ -232,3 +239,12 @@ Dateinamen ein. Eine `AppUserModelID` zu deklarieren ändert daran nichts
   [VirtualDesktop.cs](../VirtualDesktop.cs) muss angepasst werden.
 - Das Fixieren gilt dem Fenster, nicht der Anwendung: Ein wieder geöffnetes
   Fenster muss erneut fixiert werden.
+
+## Lizenz
+
+Freie und unbegrenzte Nutzung, zu Hause wie im Beruf. Sie dürfen die Software
+kopieren, studieren, ändern und weitergeben, sofern Sie sie **nicht verkaufen**,
+in jeder veröffentlichten Änderung **den Autor nennen** und die Lizenz jeder Kopie
+beilegen.
+
+Vollständiger Text: [LICENSE.md](../LICENSE.md).

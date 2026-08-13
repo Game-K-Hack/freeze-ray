@@ -70,9 +70,9 @@ jobs:
           [IO.File]::WriteAllText($path, $text, (New-Object Text.UTF8Encoding($false)))
           Select-String -Path $path -Pattern 'AssemblyVersion|AssemblyFileVersion'
 
-      - name: Compiler
+      - name: Compiler l'application et l'installeur
         shell: cmd
-        run: build.bat
+        run: build-installer.bat
 
       # Le numéro inscrit doit correspondre à l'étiquette, sinon la recherche de
       # mise à jour ment aux utilisateurs. On le relit dans le binaire produit.
@@ -97,15 +97,16 @@ jobs:
           $v = '${{ steps.version.outputs.version }}'
           New-Item -ItemType Directory -Force dist | Out-Null
 
-          # Archive : le binaire accompagné de sa documentation.
+          # Installeur : licence, dossier d'installation, raccourcis.
+          Copy-Item 'Freeze Ray Setup.exe' "dist\FreezeRay-$v-setup.exe"
+
+          # Archive portable : le binaire accompagné de sa documentation.
           New-Item -ItemType Directory -Force staging | Out-Null
           Copy-Item 'Freeze Ray.exe' staging\
           Copy-Item README.md staging\
+          Copy-Item LICENSE.md staging\
           Copy-Item documentation staging\documentation -Recurse
-          Compress-Archive -Path staging\* -DestinationPath "dist\FreezeRay-$v-windows.zip" -Force
-
-          # Le binaire seul, pour qui ne veut pas décompresser.
-          Copy-Item 'Freeze Ray.exe' "dist\FreezeRay-$v-windows.exe"
+          Compress-Archive -Path staging\* -DestinationPath "dist\FreezeRay-$v-portable.zip" -Force
 
           # Empreintes : permettent de vérifier ce qui a été téléchargé.
           Get-ChildItem dist -File | ForEach-Object {

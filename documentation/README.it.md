@@ -50,7 +50,10 @@ Entrambe possono essere applicate alla stessa finestra.
 5. Cambia desktop con `Ctrl + Win + ←/→`: la finestra è ancora lì.
 6. Per liberarla, fai clic sul logo nella sua barra del titolo.
 
-L'eseguibile è autonomo: non servono né installer né la cartella `assets`.
+Due modi per installarlo: eseguire `Freeze Ray Setup.exe`, che mostra la licenza,
+fa scegliere la cartella e propone i collegamenti sul desktop e nel menu Start;
+oppure copiare `Freeze Ray.exe` dove preferisci — è autonomo e non richiede la
+cartella `assets`.
 
 ## Utilizzo
 
@@ -108,8 +111,13 @@ e il **numero di versione**, poi:
 | **Lingua** | Applicata subito, menu, descrizione comando e notifiche compresi |
 | **Cerca aggiornamenti all'avvio** | Interroga GitHub all'avvio; silenzioso a meno che non esista una versione più recente |
 
-Le impostazioni vivono in `%APPDATA%\Freeze Ray\settings.ini`, un semplice file
+Le impostazioni vivono in `settings.ini`, un semplice file
 `chiave=valore` leggibile e correggibile a mano. Al primo avvio la lingua segue quella di Windows, con ripiego sull'inglese. Sono disponibili nove lingue: inglese, francese, tedesco, spagnolo, italiano, giapponese, coreano, russo e cinese.
+
+Il file si trova **accanto all'applicazione**: l'installazione sta quindi in una
+sola cartella, che puoi copiare su una chiavetta o cancellare in blocco. Se quella
+cartella non è scrivibile — una copia in `Program Files`, per dire — le impostazioni
+ripiegano su `%APPDATA%\Freeze Ray` invece di andare perse.
 
 I testi stanno in [Strings.cs](../Strings.cs), una tabella per lingua invece di
 file di risorse, così il progetto resta compilabile con il compilatore fornito da
@@ -234,3 +242,12 @@ un nome senza estensione.
   [VirtualDesktop.cs](../VirtualDesktop.cs) va adattato.
 - Il fissaggio riguarda la finestra, non l'applicazione: riaprire una finestra
   dopo averla chiusa richiede di fissarla di nuovo.
+
+## Licenza
+
+Uso libero e senza limiti, a casa come al lavoro. Puoi copiarlo, studiarlo,
+modificarlo e trasmetterlo, a condizione di **non venderlo**, di **citare
+l'autore** in ogni versione modificata pubblicata e di conservare la licenza con
+ogni copia.
+
+Testo completo: [LICENSE.md](../LICENSE.md).

@@ -33,7 +33,38 @@ namespace FreezeRay
             CheckUpdatesAtStartup = true;
         }
 
+        private static string _folder;
+
+        /// <summary>
+        /// Les réglages vivent à côté de l'exécutable : l'installation tient
+        /// alors dans un seul dossier, qu'on peut copier sur une clé ou effacer
+        /// d'un bloc.
+        ///
+        /// Repli sur %APPDATA% si cet emplacement n'est pas inscriptible — cas
+        /// d'une copie déposée dans Program Files, où un utilisateur standard
+        /// n'a pas le droit d'écrire. Sans ce repli, les réglages seraient
+        /// silencieusement perdus à chaque fermeture.
+        /// </summary>
         public static string Folder
+        {
+            get
+            {
+                if (_folder == null)
+                {
+                    string beside = AppDomain.CurrentDomain.BaseDirectory;
+                    _folder = IsWritable(beside) ? beside : RoamingFolder;
+                }
+                return _folder;
+            }
+        }
+
+        public static string FilePath
+        {
+            get { return Path.Combine(Folder, FILE_NAME); }
+        }
+
+        /// <summary>Emplacement utilisé avant que les réglages ne suivent l'exécutable.</summary>
+        private static string RoamingFolder
         {
             get
             {
@@ -43,9 +74,27 @@ namespace FreezeRay
             }
         }
 
-        public static string FilePath
+        private static string RoamingFilePath
         {
-            get { return Path.Combine(Folder, FILE_NAME); }
+            get { return Path.Combine(RoamingFolder, FILE_NAME); }
+        }
+
+        private static bool IsWritable(string directory)
+        {
+            try
+            {
+                string probe = Path.Combine(directory,
+                    "." + Guid.NewGuid().ToString("N") + ".tmp");
+                using (new FileStream(probe, FileMode.CreateNew, FileAccess.Write,
+                           FileShare.None, 1, FileOptions.DeleteOnClose))
+                {
+                }
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         public static Settings Load()
@@ -53,9 +102,12 @@ namespace FreezeRay
             Settings settings = new Settings();
             try
             {
-                if (!File.Exists(FilePath)) return settings;
+                // Reprise de l'ancien emplacement : sans cela, une installation
+                // par-dessus une version précédente repartirait de zéro.
+                string source = File.Exists(FilePath) ? FilePath : RoamingFilePath;
+                if (!File.Exists(source)) return settings;
 
-                foreach (string line in File.ReadAllLines(FilePath, Encoding.UTF8))
+                foreach (string line in File.ReadAllLines(source, Encoding.UTF8))
                 {
                     string trimmed = line.Trim();
                     if (trimmed.Length == 0 || trimmed[0] == '#' || trimmed[0] == ';') continue;

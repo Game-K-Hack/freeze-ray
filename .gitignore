@@ -6,3 +6,6 @@ Freeze Ray.exe
 # Dossiers de publication du workflow
 dist/
 staging/
+
+# Reglages ecrits par l'application quand on la lance depuis les sources
+settings.ini
