@@ -44,6 +44,115 @@ namespace KeepScreen
         [DllImport("user32.dll")]
         public static extern int GetWindowThreadProcessId(IntPtr hWnd, out int processId);
 
+        // --- Marque posee sur la barre de titre ---
+
+        public const int WS_POPUP = unchecked((int)0x80000000);
+        public const int WS_VISIBLE = 0x10000000;
+        public const int WS_EX_LAYERED = 0x00080000;
+        public const int WS_EX_TOOLWINDOW = 0x00000080;
+        public const int WS_EX_NOACTIVATE = 0x08000000;
+
+        public const int WM_MOUSEACTIVATE = 0x0021;
+        public const int WM_LBUTTONDOWN = 0x0201;
+        public const int MA_NOACTIVATE = 3;
+
+        public const int SW_HIDE = 0;
+        public const int SW_SHOWNOACTIVATE = 4;
+
+        public const int SM_CYCAPTION = 4;
+        public const int SM_CXSIZE = 30;
+
+        public const int STATE_SYSTEM_INVISIBLE = 0x00008000;
+        public const int STATE_SYSTEM_OFFSCREEN = 0x00010000;
+        public const int STATE_SYSTEM_UNAVAILABLE = 0x00000001;
+
+        public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
+
+        public const int ULW_ALPHA = 0x00000002;
+        public const byte AC_SRC_OVER = 0x00;
+        public const byte AC_SRC_ALPHA = 0x01;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left, Top, Right, Bottom;
+            public int Width { get { return Right - Left; } }
+            public int Height { get { return Bottom - Top; } }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SIZE
+        {
+            public int Cx, Cy;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct BLENDFUNCTION
+        {
+            public byte BlendOp;
+            public byte BlendFlags;
+            public byte SourceConstantAlpha;
+            public byte AlphaFormat;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct TITLEBARINFO
+        {
+            public int cbSize;
+            public RECT rcTitleBar;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
+            public int[] rgstate;
+        }
+
+        public const uint SWP_NOZORDER = 0x0004;
+        public static readonly IntPtr HWND_TOP = IntPtr.Zero;
+        public const uint GW_HWNDPREV = 3;
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetWindow(IntPtr hWnd, uint cmd);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsIconic(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsZoomed(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+
+        [DllImport("user32.dll")]
+        public static extern int GetSystemMetrics(int index);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetTitleBarInfo(IntPtr hWnd, ref TITLEBARINFO info);
+
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindow(IntPtr hWnd, int cmdShow);
+
+        [DllImport("dwmapi.dll")]
+        public static extern int DwmGetWindowAttribute(IntPtr hWnd, int attribute,
+            out RECT value, int size);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("gdi32.dll")]
+        public static extern IntPtr CreateCompatibleDC(IntPtr hDC);
+
+        [DllImport("gdi32.dll")]
+        public static extern bool DeleteDC(IntPtr hDC);
+
+        [DllImport("gdi32.dll")]
+        public static extern IntPtr SelectObject(IntPtr hDC, IntPtr hObject);
+
+        [DllImport("user32.dll")]
+        public static extern bool UpdateLayeredWindow(IntPtr hWnd, IntPtr hdcDst,
+            ref POINT pptDst, ref SIZE psize, IntPtr hdcSrc, ref POINT pptSrc,
+            int crKey, ref BLENDFUNCTION pblend, int dwFlags);
+
         // --- Selection d'une fenetre a la souris ---
 
         public const int WM_SETCURSOR = 0x0020;
@@ -54,6 +163,27 @@ namespace KeepScreen
         public const int WM_CAPTURECHANGED = 0x0215;
 
         public const int VK_ESCAPE = 0x1B;
+
+        public const int WM_ERASEBKGND = 0x0014;
+        public const int LWA_ALPHA = 0x00000002;
+        public const int BLACK_BRUSH = 4;
+        public const int IDC_CROSS = 32515;
+
+        [DllImport("user32.dll")]
+        public static extern bool SetLayeredWindowAttributes(IntPtr hWnd, int color,
+            byte alpha, int flags);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetClientRect(IntPtr hWnd, out RECT rect);
+
+        [DllImport("user32.dll")]
+        public static extern int FillRect(IntPtr hDC, ref RECT rect, IntPtr brush);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr LoadCursor(IntPtr instance, int cursor);
+
+        [DllImport("gdi32.dll")]
+        public static extern IntPtr GetStockObject(int index);
 
         [StructLayout(LayoutKind.Sequential)]
         public struct POINT

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Reflection;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -44,6 +43,12 @@ namespace KeepScreen
         private const string RUN_KEY = @"Software\Microsoft\Windows\CurrentVersion\Run";
         private const string RUN_VALUE = "KeepScreen";
 
+        /// <summary>Suivi des marques : assez court pour coller au déplacement.</summary>
+        private const int TRACK_INTERVAL = 90;
+
+        /// <summary>Un tick sur dix vérifie l'état réel, qui coûte des appels COM.</summary>
+        private const int SYNC_EVERY = 10;
+
         private readonly NotifyIcon _tray;
         private readonly ContextMenuStrip _menu;
         private readonly ToolStripMenuItem _pickAllDesktops;
@@ -52,23 +57,21 @@ namespace KeepScreen
         private readonly ToolStripMenuItem _releaseAll;
         private readonly ToolStripMenuItem _autoStart;
         private readonly ToolStripMenuItem _cleanOnExit;
-        private readonly Icon _iconIdle;
-        private readonly Icon _iconActive;
         private readonly WindowPicker _picker;
         private readonly Timer _pickStarter;
+        private readonly Timer _tracker;
         private readonly ForegroundHelper _helper;
         private readonly int _ownProcessId;
 
-        /// <summary>Fenêtres dont KeepScreen a modifié l'état.</summary>
-        private readonly List<IntPtr> _managed = new List<IntPtr>();
+        /// <summary>Une marque par fenêtre verrouillée : c'est aussi la liste des cibles.</summary>
+        private readonly List<WindowMarker> _markers = new List<WindowMarker>();
 
         private PickAction _pendingAction;
+        private int _tick;
 
         public TrayContext()
         {
             _ownProcessId = Process.GetCurrentProcess().Id;
-            _iconIdle = BuildIcon(Color.FromArgb(120, 130, 140));
-            _iconActive = BuildIcon(Color.FromArgb(220, 90, 60));
             _helper = new ForegroundHelper();
 
             _picker = new WindowPicker();
@@ -85,6 +88,10 @@ namespace KeepScreen
                 _picker.Start();
                 UpdateTrayState();
             };
+
+            _tracker = new Timer();
+            _tracker.Interval = TRACK_INTERVAL;
+            _tracker.Tick += delegate { OnTrack(); };
 
             _menu = new ContextMenuStrip();
             _menu.Opening += delegate { RefreshMenu(); };
@@ -129,7 +136,7 @@ namespace KeepScreen
             _menu.Items.Add(quit);
 
             _tray = new NotifyIcon();
-            _tray.Icon = _iconIdle;
+            _tray.Icon = Assets.TrayIcon;
             _tray.Text = "KeepScreen";
             _tray.Visible = true;
             _tray.ContextMenuStrip = _menu;
@@ -143,6 +150,8 @@ namespace KeepScreen
                     ToolTipIcon.Error);
             }
         }
+
+        // --- Interaction ---
 
         private void OnTrayClick(object sender, MouseEventArgs e)
         {
@@ -191,13 +200,13 @@ namespace KeepScreen
         {
             UpdateTrayState();
 
-            if (!IsUsableTarget(hwnd))
-            {
-                Notify("KeepScreen",
-                    "Cette zone n'est pas une fenêtre exploitable (bureau, barre des tâches…).",
-                    ToolTipIcon.Warning);
-                return;
-            }
+            // Désigner une marque revient à désigner la fenêtre qu'elle signale.
+            WindowMarker marker = FindMarkerByHandle(hwnd);
+            if (marker != null) hwnd = marker.Target;
+
+            // Cliquer le bureau, la barre des tâches ou l'icône revient à
+            // renoncer : on abandonne sans avertissement, comme le ferait Échap.
+            if (!IsUsableTarget(hwnd)) return;
 
             if (_pendingAction == PickAction.AllDesktops)
                 ToggleAllDesktops(hwnd);
@@ -226,6 +235,8 @@ namespace KeepScreen
             return true;
         }
 
+        // --- Actions sur les fenêtres ---
+
         private void ToggleAllDesktops(IntPtr hwnd)
         {
             string title = Native.GetTitle(hwnd);
@@ -242,10 +253,9 @@ namespace KeepScreen
                 return;
             }
 
-            Track(hwnd);
+            SyncMarker(hwnd);
             Notify(wasPinned ? "Ne suit plus les bureaux" : "Maintenue sur tous les bureaux",
                 title, ToolTipIcon.Info);
-            UpdateTrayState();
         }
 
         private void ToggleTopMost(IntPtr hwnd)
@@ -262,15 +272,9 @@ namespace KeepScreen
                 return;
             }
 
-            Track(hwnd);
+            SyncMarker(hwnd);
             Notify(wasTop ? "Premier plan désactivé" : "Toujours au premier plan",
                 title, ToolTipIcon.Info);
-            UpdateTrayState();
-        }
-
-        private void Track(IntPtr hwnd)
-        {
-            if (!_managed.Contains(hwnd)) _managed.Add(hwnd);
         }
 
         private bool IsPinned(IntPtr hwnd)
@@ -278,54 +282,122 @@ namespace KeepScreen
             return VirtualDesktop.Available && VirtualDesktop.IsPinned(hwnd);
         }
 
+        private bool IsLocked(IntPtr hwnd)
+        {
+            return Native.IsWindow(hwnd) && (IsPinned(hwnd) || Native.IsTopMost(hwnd));
+        }
+
         private void Release(IntPtr hwnd)
         {
-            if (!Native.IsWindow(hwnd)) return;
-            if (IsPinned(hwnd)) VirtualDesktop.Unpin(hwnd);
-            if (Native.IsTopMost(hwnd))
+            if (Native.IsWindow(hwnd))
             {
-                Native.SetWindowPos(hwnd, Native.HWND_NOTOPMOST, 0, 0, 0, 0,
-                    Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
+                if (IsPinned(hwnd)) VirtualDesktop.Unpin(hwnd);
+                if (Native.IsTopMost(hwnd))
+                {
+                    Native.SetWindowPos(hwnd, Native.HWND_NOTOPMOST, 0, 0, 0, 0,
+                        Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
+                }
             }
+            RemoveMarker(hwnd);
         }
 
         private void ReleaseAll(bool notify)
         {
-            int count = 0;
-            foreach (IntPtr hwnd in _managed.ToArray())
-            {
-                if (!Native.IsWindow(hwnd)) continue;
-                Release(hwnd);
-                count++;
-            }
-            _managed.Clear();
+            int count = _markers.Count;
+            foreach (WindowMarker marker in _markers.ToArray()) Release(marker.Target);
             UpdateTrayState();
             if (notify)
                 Notify("KeepScreen", count + " fenêtre(s) libérée(s).", ToolTipIcon.Info);
         }
 
-        /// <summary>
-        /// Écarte les fenêtres fermées et celles dont l'état a été annulé
-        /// ailleurs (vue des tâches, autre utilitaire).
-        /// </summary>
-        private void Prune()
+        // --- Marques posées sur les barres de titre ---
+
+        private WindowMarker FindMarker(IntPtr target)
         {
-            _managed.RemoveAll(delegate(IntPtr h)
-            {
-                return !Native.IsWindow(h) || (!IsPinned(h) && !Native.IsTopMost(h));
-            });
+            foreach (WindowMarker m in _markers)
+                if (m.Target == target) return m;
+            return null;
         }
+
+        private WindowMarker FindMarkerByHandle(IntPtr handle)
+        {
+            foreach (WindowMarker m in _markers)
+                if (m.Handle == handle) return m;
+            return null;
+        }
+
+        /// <summary>Crée, met à jour ou retire la marque selon l'état réel de la fenêtre.</summary>
+        private void SyncMarker(IntPtr hwnd)
+        {
+            WindowMarker marker = FindMarker(hwnd);
+
+            if (!IsLocked(hwnd))
+            {
+                if (marker != null) RemoveMarker(hwnd);
+                UpdateTrayState();
+                return;
+            }
+
+            if (marker == null)
+            {
+                marker = new WindowMarker(hwnd);
+                marker.Clicked += OnMarkerClicked;
+                _markers.Add(marker);
+                if (!_tracker.Enabled) _tracker.Start();
+            }
+
+            // Une fenêtre présente sur tous les bureaux doit emmener sa marque
+            // avec elle, sinon la marque resterait sur le bureau d'origine.
+            if (IsPinned(hwnd) && !VirtualDesktop.IsPinned(marker.Handle))
+                VirtualDesktop.Pin(marker.Handle);
+            else if (!IsPinned(hwnd) && VirtualDesktop.IsPinned(marker.Handle))
+                VirtualDesktop.Unpin(marker.Handle);
+
+            marker.Update();
+            UpdateTrayState();
+        }
+
+        private void RemoveMarker(IntPtr target)
+        {
+            WindowMarker marker = FindMarker(target);
+            if (marker == null) return;
+            _markers.Remove(marker);
+            marker.Dispose();
+            if (_markers.Count == 0) _tracker.Stop();
+        }
+
+        private void OnMarkerClicked(IntPtr target)
+        {
+            string title = Native.GetTitle(target);
+            Release(target);
+            UpdateTrayState();
+            Notify("Fenêtre libérée", title, ToolTipIcon.Info);
+        }
+
+        private void OnTrack()
+        {
+            foreach (WindowMarker marker in _markers.ToArray()) marker.Update();
+
+            // La vérification d'état est plus coûteuse : on l'espace.
+            if (++_tick % SYNC_EVERY != 0) return;
+            _tick = 0;
+
+            foreach (WindowMarker marker in _markers.ToArray())
+            {
+                if (!IsLocked(marker.Target)) RemoveMarker(marker.Target);
+            }
+            UpdateTrayState();
+        }
+
+        // --- Zone de notification ---
 
         private void UpdateTrayState()
         {
-            Prune();
-            _tray.Icon = _managed.Count > 0 || _picker.IsActive ? _iconActive : _iconIdle;
-
             string text;
             if (_picker.IsActive)
                 text = "KeepScreen — désignez une fenêtre (Échap pour annuler)";
-            else if (_managed.Count > 0)
-                text = "KeepScreen — " + _managed.Count + " fenêtre(s) verrouillée(s)";
+            else if (_markers.Count > 0)
+                text = "KeepScreen — " + _markers.Count + " fenêtre(s) verrouillée(s)";
             else
                 text = "KeepScreen";
 
@@ -347,20 +419,23 @@ namespace KeepScreen
 
         private void RefreshMenu()
         {
-            Prune();
+            foreach (WindowMarker marker in _markers.ToArray())
+            {
+                if (!IsLocked(marker.Target)) RemoveMarker(marker.Target);
+            }
 
             _pickAllDesktops.Enabled = VirtualDesktop.Available;
 
             _managedRoot.DropDownItems.Clear();
-            _managedRoot.Enabled = _managed.Count > 0;
-            _releaseAll.Enabled = _managed.Count > 0;
-            _managedRoot.Text = _managed.Count > 0
-                ? "Fenêtres verrouillées (" + _managed.Count + ")"
+            _managedRoot.Enabled = _markers.Count > 0;
+            _releaseAll.Enabled = _markers.Count > 0;
+            _managedRoot.Text = _markers.Count > 0
+                ? "Fenêtres verrouillées (" + _markers.Count + ")"
                 : "Aucune fenêtre verrouillée";
 
-            foreach (IntPtr hwnd in _managed)
+            foreach (WindowMarker marker in _markers)
             {
-                IntPtr captured = hwnd;
+                IntPtr captured = marker.Target;
                 string state = DescribeState(IsPinned(captured), Native.IsTopMost(captured));
                 ToolStripMenuItem item = new ToolStripMenuItem(
                     Ellipsize(Native.GetTitle(captured), 55) + "   [" + state + "]");
@@ -368,7 +443,6 @@ namespace KeepScreen
                 item.Click += delegate
                 {
                     Release(captured);
-                    _managed.Remove(captured);
                     UpdateTrayState();
                 };
                 _managedRoot.DropDownItems.Add(item);
@@ -384,6 +458,8 @@ namespace KeepScreen
             _tray.BalloonTipIcon = icon;
             _tray.ShowBalloonTip(2500);
         }
+
+        // --- Démarrage automatique ---
 
         private static bool IsAutoStartEnabled()
         {
@@ -414,43 +490,24 @@ namespace KeepScreen
             }
         }
 
-        /// <summary>Petite épingle dessinée à la volée : évite d'embarquer un .ico.</summary>
-        private static Icon BuildIcon(Color color)
-        {
-            using (Bitmap bmp = new Bitmap(32, 32))
-            using (Graphics g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-                using (SolidBrush brush = new SolidBrush(color))
-                using (Pen pen = new Pen(color, 3f))
-                {
-                    g.FillEllipse(brush, 9, 3, 14, 14);
-                    g.DrawLine(pen, 16, 16, 16, 29);
-                }
-                IntPtr h = bmp.GetHicon();
-                using (Icon tmp = Icon.FromHandle(h))
-                {
-                    return (Icon)tmp.Clone();
-                }
-            }
-        }
-
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
                 _pickStarter.Stop();
+                _tracker.Stop();
                 _picker.Dispose();
+
                 if (_cleanOnExit != null && _cleanOnExit.Checked) ReleaseAll(false);
+                foreach (WindowMarker marker in _markers.ToArray()) marker.Dispose();
+                _markers.Clear();
 
                 _tray.Visible = false;
                 _tray.Dispose();
                 _menu.Dispose();
                 _pickStarter.Dispose();
+                _tracker.Dispose();
                 _helper.DestroyHandle();
-                _iconIdle.Dispose();
-                _iconActive.Dispose();
             }
             base.Dispose(disposing);
         }

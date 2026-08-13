@@ -1,28 +1,42 @@
 using System;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace KeepScreen
 {
     /// <summary>
-    /// Mode « désignation » à la DeskPin : le curseur devient une épingle et le
-    /// prochain clic gauche choisit la fenêtre cible.
+    /// Mode « désignation » à la DeskPin : le curseur prend la forme du logo et
+    /// le prochain clic gauche choisit la fenêtre cible.
     ///
-    /// La capture souris (SetCapture) est ce qui permet de recevoir le clic où
-    /// qu'il ait lieu à l'écran, et de le consommer avant que la fenêtre visée ne
-    /// le reçoive — cliquer pour désigner ne doit pas actionner un bouton.
+    /// La mise en œuvre passe par un calque transparent couvrant tous les
+    /// moniteurs, et non par SetCapture. La capture souris ne redirige en effet
+    /// les messages que si un bouton est maintenu enfoncé ou si le pointeur
+    /// survole la fenêtre capturante : sans bouton pressé, chaque fenêtre
+    /// survolée continue d'imposer son propre curseur, et le logo n'apparaissait
+    /// jamais. Avec le calque, le pointeur est en permanence au-dessus de notre
+    /// fenêtre : elle impose son curseur et reçoit le clic, qui n'atteint donc
+    /// pas ce qui se trouve dessous.
     /// </summary>
     internal sealed class WindowPicker : NativeWindow, IDisposable
     {
+        /// <summary>Taille standard d'un curseur ; au-delà, Windows le réduirait.</summary>
+        private const int CURSOR_SIZE = 32;
+
+        /// <summary>
+        /// Opacité minimale : invisible à l'œil, mais un calque totalement
+        /// transparent ne recevrait aucun clic.
+        /// </summary>
+        private const byte OVERLAY_ALPHA = 1;
+
         private readonly IntPtr _cursor;
+        private readonly IntPtr _background;
         private readonly Timer _escapeWatcher;
         private bool _active;
 
         /// <summary>Fenêtre désignée par l'utilisateur.</summary>
         public event Action<IntPtr> Picked;
 
-        /// <summary>Désignation abandonnée (Échap, clic droit, perte de capture).</summary>
+        /// <summary>Désignation abandonnée (Échap, clic droit).</summary>
         public event Action Cancelled;
 
         public bool IsActive { get { return _active; } }
@@ -30,13 +44,18 @@ namespace KeepScreen
         public WindowPicker()
         {
             CreateParams cp = new CreateParams();
-            cp.Style = unchecked((int)0x80000000); // WS_POPUP : fenêtre jamais affichée
+            cp.Style = Native.WS_POPUP;
+            cp.ExStyle = Native.WS_EX_LAYERED | Native.WS_EX_TOOLWINDOW
+                         | Native.WS_EX_NOACTIVATE | Native.WS_EX_TOPMOST;
             CreateHandle(cp);
 
-            _cursor = BuildPinCursor();
+            Native.SetLayeredWindowAttributes(Handle, 0, OVERLAY_ALPHA, Native.LWA_ALPHA);
 
-            // La capture souris détourne le clavier des messages habituels :
-            // on interroge donc Échap directement.
+            _cursor = BuildLogoCursor();
+            _background = Native.GetStockObject(Native.BLACK_BRUSH);
+
+            // Le calque ne prend jamais le focus clavier : Échap se lit donc
+            // directement plutôt qu'en attendant un message.
             _escapeWatcher = new Timer();
             _escapeWatcher.Interval = 50;
             _escapeWatcher.Tick += delegate
@@ -50,8 +69,16 @@ namespace KeepScreen
         {
             if (_active) return;
             _active = true;
-            Native.SetCapture(Handle);
+
+            // Couvre l'ensemble des écrans, y compris à gauche ou au-dessus de
+            // l'écran principal (coordonnées négatives).
+            Rectangle screens = SystemInformation.VirtualScreen;
+            Native.SetWindowPos(Handle, Native.HWND_TOPMOST,
+                screens.X, screens.Y, screens.Width, screens.Height,
+                Native.SWP_NOACTIVATE);
+            Native.ShowWindow(Handle, Native.SW_SHOWNOACTIVATE);
             Native.SetCursor(_cursor);
+
             _escapeWatcher.Start();
         }
 
@@ -65,7 +92,7 @@ namespace KeepScreen
             if (!_active) return;
             _active = false;
             _escapeWatcher.Stop();
-            if (Native.GetCapture() == Handle) Native.ReleaseCapture();
+            Native.ShowWindow(Handle, Native.SW_HIDE);
 
             if (picked)
             {
@@ -84,16 +111,21 @@ namespace KeepScreen
                 switch (m.Msg)
                 {
                     case Native.WM_SETCURSOR:
-                    case Native.WM_MOUSEMOVE:
-                        // Windows réinitialise le curseur en permanence : il faut
-                        // le réimposer à chaque message.
                         Native.SetCursor(_cursor);
-                        if (m.Msg == Native.WM_SETCURSOR)
-                        {
-                            m.Result = new IntPtr(1);
-                            return;
-                        }
-                        break;
+                        m.Result = new IntPtr(1);
+                        return;
+
+                    case Native.WM_MOUSEACTIVATE:
+                        // Le calque ne doit jamais devenir la fenêtre active.
+                        m.Result = new IntPtr(Native.MA_NOACTIVATE);
+                        return;
+
+                    case Native.WM_ERASEBKGND:
+                        // Un calque non peint afficherait un contenu indéfini ;
+                        // à cette opacité le noir reste imperceptible.
+                        EraseBackground(m.WParam);
+                        m.Result = new IntPtr(1);
+                        return;
 
                     case Native.WM_LBUTTONUP:
                         Finish(true, WindowUnderCursor());
@@ -102,50 +134,41 @@ namespace KeepScreen
                     case Native.WM_RBUTTONUP:
                         Finish(false, IntPtr.Zero);
                         return;
-
-                    case Native.WM_CAPTURECHANGED:
-                    case Native.WM_CANCELMODE:
-                        // Une autre application a pris la capture : on abandonne
-                        // plutôt que de rester bloqué dans un mode invisible.
-                        Finish(false, IntPtr.Zero);
-                        return;
                 }
             }
             base.WndProc(ref m);
         }
 
-        private static IntPtr WindowUnderCursor()
+        private void EraseBackground(IntPtr hdc)
         {
-            Native.POINT pt;
-            if (!Native.GetCursorPos(out pt)) return IntPtr.Zero;
-            return Native.GetRootWindow(Native.WindowFromPoint(pt));
+            Native.RECT client;
+            if (Native.GetClientRect(Handle, out client))
+                Native.FillRect(hdc, ref client, _background);
         }
 
         /// <summary>
-        /// Épingle dessinée à la volée, pointe en bas : le point chaud est la
-        /// pointe, c'est lui qui désigne réellement la fenêtre.
+        /// Fenêtre réellement sous le pointeur. Le calque doit être masqué avant
+        /// l'interrogation, sinon il se désignerait lui-même.
         /// </summary>
-        private static IntPtr BuildPinCursor()
+        private IntPtr WindowUnderCursor()
+        {
+            Native.POINT pt;
+            if (!Native.GetCursorPos(out pt)) return IntPtr.Zero;
+
+            Native.ShowWindow(Handle, Native.SW_HIDE);
+            IntPtr hwnd = Native.WindowFromPoint(pt);
+            return Native.GetRootWindow(hwnd);
+        }
+
+        /// <summary>
+        /// Curseur repris du logo de l'application : c'est lui qui signale à
+        /// l'utilisateur qu'une fenêtre est attendue.
+        /// </summary>
+        private static IntPtr BuildLogoCursor()
         {
             IntPtr hIcon;
-            using (Bitmap bmp = new Bitmap(32, 32))
+            using (Bitmap bmp = Assets.RenderLogo(CURSOR_SIZE))
             {
-                using (Graphics g = Graphics.FromImage(bmp))
-                {
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    g.Clear(Color.Transparent);
-                    using (SolidBrush head = new SolidBrush(Color.FromArgb(220, 90, 60)))
-                    using (Pen outline = new Pen(Color.White, 2f))
-                    using (Pen needle = new Pen(Color.White, 4f))
-                    using (Pen needleCore = new Pen(Color.FromArgb(40, 40, 40), 2f))
-                    {
-                        // Contour blanc : lisibilité sur fond sombre comme clair.
-                        g.DrawLine(needle, 12, 14, 12, 29);
-                        g.DrawLine(needleCore, 12, 14, 12, 29);
-                        g.FillEllipse(head, 4, 2, 17, 15);
-                        g.DrawEllipse(outline, 4, 2, 17, 15);
-                    }
-                }
                 hIcon = bmp.GetHicon();
             }
 
@@ -153,19 +176,21 @@ namespace KeepScreen
             if (!Native.GetIconInfo(hIcon, out info))
             {
                 Native.DestroyIcon(hIcon);
-                return IntPtr.Zero; // SetCursor(NULL) : curseur masqué, mais le mode reste utilisable
+                return Native.LoadCursor(IntPtr.Zero, Native.IDC_CROSS); // repli visible
             }
 
             info.fIcon = false;   // fIcon = FALSE transforme l'icône en curseur
-            info.xHotspot = 12;
-            info.yHotspot = 29;
+            info.xHotspot = CURSOR_SIZE / 2;
+            info.yHotspot = CURSOR_SIZE / 2;
             IntPtr hCursor = Native.CreateIconIndirect(ref info);
 
             if (info.hbmColor != IntPtr.Zero) Native.DeleteObject(info.hbmColor);
             if (info.hbmMask != IntPtr.Zero) Native.DeleteObject(info.hbmMask);
             Native.DestroyIcon(hIcon);
 
-            return hCursor;
+            return hCursor != IntPtr.Zero
+                ? hCursor
+                : Native.LoadCursor(IntPtr.Zero, Native.IDC_CROSS);
         }
 
         public void Dispose()
