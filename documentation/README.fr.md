@@ -153,21 +153,6 @@ build.bat
 Cela produit `Freeze Ray.exe` à côté des sources. Le logo est **embarqué dans
 l'exécutable**, qui fonctionne donc seul.
 
-## Remplacer le logo
-
-| Fichier | Rôle |
-|---|---|
-| `assets/icon.png` | Logo source (512×512, transparent) — icône de la zone de notification, curseur de désignation et marque |
-| `assets/app.ico` | Icône multi-résolutions (16 → 256) — icône du fichier et de la fenêtre |
-| `assets/Freeze Ray.png` | Illustration réservée à l'en-tête des paramètres |
-
-Pour changer de logo, remplacez `assets/icon.png`, fabriquez un `assets/app.ico`
-correspondant contenant les neuf tailles usuelles (16, 20, 24, 32, 40, 48, 64, 128,
-256) avec l'éditeur d'icônes de votre choix, puis lancez `build.bat`.
-
-Une seule image 256×256 ne suffit pas : Windows devrait la réduire lui-même pour la
-zone de notification (16×16) et la barre de titre, avec un rendu flou.
-
 ## Comment ça marche
 
 ### Les bureaux virtuels

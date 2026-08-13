@@ -145,21 +145,6 @@ build.bat
 Esto produce `Freeze Ray.exe` junto a las fuentes. El logotipo va **incrustado en
 el ejecutable**, así que el binario funciona por sí solo.
 
-## Cambiar el logotipo
-
-| Archivo | Función |
-|---|---|
-| `assets/icon.png` | Logotipo de origen (512×512, transparente): icono del área de notificación, cursor de selección y marca de la barra de título |
-| `assets/app.ico` | Icono multirresolución (16 → 256): icono del archivo y de la ventana |
-| `assets/Freeze Ray.png` | Ilustración usada solo en la cabecera de la configuración |
-
-Para cambiar el logotipo, sustituye `assets/icon.png`, genera un `assets/app.ico`
-con los nueve tamaños habituales (16, 20, 24, 32, 40, 48, 64, 128, 256) usando
-cualquier editor de iconos y ejecuta `build.bat`.
-
-Una sola imagen de 256×256 no basta: Windows tendría que reducirla por su cuenta
-para el área de notificación (16×16) y la barra de título, con un resultado borroso.
-
 ## Cómo funciona
 
 ### Escritorios virtuales

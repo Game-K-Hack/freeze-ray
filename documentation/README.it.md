@@ -147,21 +147,6 @@ build.bat
 Produce `Freeze Ray.exe` accanto ai sorgenti. Il logo è **incorporato
 nell'eseguibile**, quindi il binario funziona da solo.
 
-## Sostituire il logo
-
-| File | Ruolo |
-|---|---|
-| `assets/icon.png` | Logo sorgente (512×512, trasparente): icona dell'area di notifica, cursore di selezione e contrassegno sulla barra del titolo |
-| `assets/app.ico` | Icona multi-risoluzione (16 → 256): icona del file e della finestra |
-| `assets/Freeze Ray.png` | Illustrazione usata solo nell'intestazione delle impostazioni |
-
-Per cambiare logo, sostituisci `assets/icon.png`, genera un `assets/app.ico`
-con le nove dimensioni consuete (16, 20, 24, 32, 40, 48, 64, 128, 256) usando un
-qualsiasi editor di icone, poi esegui `build.bat`.
-
-Una sola immagine da 256×256 non basta: Windows dovrebbe rimpicciolirla da sé per
-l'area di notifica (16×16) e la barra del titolo, con un risultato sfocato.
-
 ## Come funziona
 
 ### I desktop virtuali

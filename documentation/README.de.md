@@ -145,21 +145,6 @@ build.bat
 Das erzeugt `Freeze Ray.exe` neben den Quellen. Das Logo ist **in die ausführbare
 Datei eingebettet**, das Binary funktioniert also allein.
 
-## Das Logo ersetzen
-
-| Datei | Rolle |
-|---|---|
-| `assets/icon.png` | Quell-Logo (512×512, transparent) – Infobereichssymbol, Auswahlzeiger und Titelleistenmarke |
-| `assets/app.ico` | Symbol in mehreren Größen (16 → 256) – Datei- und Fenstersymbol |
-| `assets/Freeze Ray.png` | Nur für den Kopfbereich der Einstellungen verwendete Illustration |
-
-Zum Wechseln des Logos ersetzen Sie `assets/icon.png`, erzeugen ein passendes
-`assets/app.ico` mit den neun üblichen Größen (16, 20, 24, 32, 40, 48, 64, 128, 256)
-in einem beliebigen Icon-Editor und führen dann `build.bat` aus.
-
-Ein einzelnes 256×256-Bild genügt nicht: Windows müsste es für den Infobereich
-(16×16) und die Titelleiste selbst verkleinern – mit unscharfem Ergebnis.
-
 ## Wie es funktioniert
 
 ### Virtuelle Desktops

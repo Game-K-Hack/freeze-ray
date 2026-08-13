@@ -144,21 +144,6 @@ build.bat
 This produces `Freeze Ray.exe` next to the sources. The logo is **embedded in the
 executable**, so the binary works on its own.
 
-## Replacing the logo
-
-| File | Role |
-|---|---|
-| `assets/icon.png` | Source logo (512×512, transparent) — tray icon, picking cursor and title-bar marker |
-| `assets/app.ico` | Multi-size icon (16 → 256) — file icon and window icon |
-| `assets/Freeze Ray.png` | Illustration used only in the settings header |
-
-To change the logo, replace `assets/icon.png`, build a matching `assets/app.ico`
-holding the nine usual sizes (16, 20, 24, 32, 40, 48, 64, 128, 256) with any icon
-editor, then run `build.bat`.
-
-A single 256×256 image is not enough: Windows would have to shrink it itself for
-the notification area (16×16) and the title bar, with a blurry result.
-
 ## How it works
 
 ### Virtual desktops
