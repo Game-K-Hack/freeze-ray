@@ -2,6 +2,8 @@
 
 ![Freeze Ray banner](documentation/banner.png)
 
+<h1>Freeze Ray</h1>
+
 **Freeze a window in place: keep it visible at the same spot across every virtual desktop, and on top of everything else.**
 
 **English** · [Français](./documentation/README.fr.md) · [Deutsch](./documentation/README.de.md) · [Español](./documentation/README.es.md) · [Italiano](./documentation/README.it.md) · [日本語](./documentation/README.ja.md) · [한국어](./documentation/README.ko.md) · [Русский](./documentation/README.ru.md) · [中文](./documentation/README.zh.md)
